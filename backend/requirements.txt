@@ -1,0 +1,22 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+pydantic==2.9.2
+websockets==13.1
+
+# YTCM core dependencies
+google-api-python-client==2.143.0
+google-auth==2.35.0
+langdetect==1.0.9
+textblob==0.18.0
+vaderSentiment==3.3.2
+scikit-learn==1.5.2
+matplotlib==3.9.2
+numpy==2.1.1
+pandas==2.2.3
+seaborn==0.13.2
+networkx==3.3
+wordcloud==1.9.3
+scipy==1.14.1
+tqdm==4.66.5
+python-dateutil==2.9.0.post0
