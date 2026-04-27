@@ -4,43 +4,73 @@ import { Card, SectionTitle, Btn, Select, StatTile, PlotGallery } from '../compo
 import { BarChart3, TrendingUp, Heart, Calendar, Eye, Upload, Users } from 'lucide-react'
 
 const ANALYSES = [
-  { key: 'activity',  label: 'Comment Activity',     icon: TrendingUp, fn: f => api.scopeActivity(f)  },
-  { key: 'sentiment', label: 'Sentiment',             icon: Heart,      fn: f => api.scopeSentiment(f) },
-  { key: 'likes',     label: 'Likes Distribution',   icon: BarChart3,  fn: f => api.scopeLikes(f)     },
-  { key: 'weekdays',  label: 'Weekday Patterns',     icon: Calendar,   fn: f => api.scopeWeekdays(f)  },
-  { key: 'views',     label: 'Views vs Comments',    icon: Eye,        fn: f => api.scopeViews(f)     },
-  { key: 'uploads',   label: 'Uploads Over Time',    icon: Upload,     fn: f => api.scopeUploads(f)   },
-  { key: 'channels',  label: 'Channel Participation',icon: Users,      fn: f => api.scopeChannels(f)  },
+  { key: 'activity',  label: 'Comment Activity',      icon: TrendingUp, fn: s => api.scopeActivity(s)  },
+  { key: 'sentiment', label: 'Sentiment',             icon: Heart,      fn: s => api.scopeSentiment(s) },
+  { key: 'likes',     label: 'Likes Distribution',    icon: BarChart3,  fn: s => api.scopeLikes(s)     },
+  { key: 'weekdays',  label: 'Weekday Patterns',      icon: Calendar,   fn: s => api.scopeWeekdays(s)  },
+  { key: 'views',     label: 'Views vs Comments',     icon: Eye,        fn: s => api.scopeViews(s)     },
+  { key: 'uploads',   label: 'Uploads Over Time',     icon: Upload,     fn: s => api.scopeUploads(s)   },
+  { key: 'channels',  label: 'Channel Participation',icon: Users,       fn: s => api.scopeChannels(s)  },
 ]
 
 export default function TubeScopePage() {
-  const [files, setFiles] = useState([])
-  const [session, setSession] = useState('Comments.json')
+  const [sessions, setSessions] = useState([])
+  const [session, setSession] = useState('')
   const [summary, setSummary] = useState(null)
   const [active, setActive] = useState(null)
-  const [plotData, setPlotData] = useState({}) // key → { images, loading, error }
+  const [plotData, setPlotData] = useState({})
 
   useEffect(() => {
-    api.listFiles().then(r => setFiles(r.files)).catch(() => {})
+    api.listSessions()
+      .then(r => {
+        setSessions(r.sessions || [])
+        if (r.sessions?.length > 0) {
+          setSession(r.sessions[0].session_id) // default selection
+        }
+      })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
-    if (file) {
-      api.scopeSummary(session).then(setSummary).catch(() => setSummary(null))
+    if (session) {
+      api.scopeSummary(session)
+        .then(setSummary)
+        .catch(() => setSummary(null))
     }
-  }, [file])
+  }, [session])
 
   async function runAnalysis(a) {
+    if (!session) return
+
     setActive(a.key)
-    setPlotData(p => ({ ...p, [a.key]: { loading: true, images: null, error: null } }))
+
+    // ✅ instant loading state
+    setPlotData(p => ({
+      ...p,
+      [a.key]: { loading: true, images: null, error: null }
+    }))
+
     try {
-      const res = await a.fn(file)
+      const res = await a.fn(session)
+
       setPlotData(p => ({
         ...p,
-        [a.key]: { loading: false, images: res.images, error: null, extra: res }
+        [a.key]: {
+          loading: false,
+          images: res.images,
+          error: null,
+          extra: res
+        }
       }))
     } catch (e) {
-      setPlotData(p => ({ ...p, [a.key]: { loading: false, images: null, error: e.message } }))
+      setPlotData(p => ({
+        ...p,
+        [a.key]: {
+          loading: false,
+          images: null,
+          error: e.message
+        }
+      }))
     }
   }
 
@@ -55,9 +85,19 @@ export default function TubeScopePage() {
       {/* Controls */}
       <div className="flex items-end gap-4">
         <div className="w-64">
-          <Select label="Dataset" value={session} onChange={e => setSession(e.target.value)}>
-            {files.map(f => <option key={f.name}>{f.name}</option>)}
-            {files.length === 0 && <option>Comments.json</option>}
+          <Select
+            label="Dataset"
+            value={session}
+            onChange={e => setSession(e.target.value)}
+          >
+            {sessions.map(s => (
+              <option key={s.session_id} value={s.session_id}>
+                {s.session_id} ({s.video_count} videos)
+              </option>
+            ))}
+            {sessions.length === 0 && (
+              <option value="">No sessions available</option>
+            )}
           </Select>
         </div>
       </div>
@@ -89,6 +129,7 @@ export default function TubeScopePage() {
             <button
               key={a.key}
               onClick={() => runAnalysis(a)}
+              disabled={!session}
               className={`group p-4 rounded-2xl border text-left transition-all duration-200 ${
                 active === a.key
                   ? 'bg-acid-500/10 border-acid-500/30 text-acid-400'
@@ -97,9 +138,18 @@ export default function TubeScopePage() {
             >
               <a.icon size={18} className="mb-2" />
               <p className="text-sm font-body font-medium">{a.label}</p>
-              {state?.loading && <p className="text-xs mt-1 text-ink-500 font-mono">generating…</p>}
-              {state?.images && !state.loading && <p className="text-xs mt-1 text-teal-500 font-mono">✓ ready</p>}
-              {state?.error && <p className="text-xs mt-1 text-coral-400 font-mono truncate">{state.error}</p>}
+
+              {state?.loading && (
+                <p className="text-xs mt-1 text-ink-500 font-mono">generating…</p>
+              )}
+              {state?.images && !state.loading && (
+                <p className="text-xs mt-1 text-teal-500 font-mono">✓ ready</p>
+              )}
+              {state?.error && (
+                <p className="text-xs mt-1 text-coral-400 font-mono truncate">
+                  {state.error}
+                </p>
+              )}
             </button>
           )
         })}
@@ -112,10 +162,12 @@ export default function TubeScopePage() {
             {ANALYSES.find(a => a.key === active)?.label}
           </p>
 
-          {/* Extra numeric data */}
           {current?.extra?.average_sentiment != null && (
             <div className="mb-4 flex gap-3">
-              <StatTile label="Average Sentiment" value={current.extra.average_sentiment?.toFixed(3)} />
+              <StatTile
+                label="Average Sentiment"
+                value={current.extra.average_sentiment?.toFixed(3)}
+              />
             </div>
           )}
 
