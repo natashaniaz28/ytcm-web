@@ -35,23 +35,38 @@ const FORMATS = [
 ]
 
 export default function ExportPage() {
-  const [files, setFiles] = useState([])
-  const [session, setSession] = useState('Comments.json')
+  const [sessions, setSessions] = useState([])
+  const [session, setSession] = useState('')
   const [format, setFormat] = useState('all')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
 
+  // ✅ Load sessions
   useEffect(() => {
-    api.listFiles().then(r => setFiles(r.files)).catch(() => {})
+    api.listSessions()
+      .then(r => {
+        setSessions(r.sessions || [])
+        if (r.sessions?.length > 0) {
+          setSession(r.sessions[0].session_id)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   async function runExport() {
+    if (!session) return
+
+    // ✅ immediate feedback
     setLoading(true)
     setError(null)
     setResult(null)
+
     try {
-      const r = await api.exportData({ format, session_id: session })
+      const r = await api.exportData({
+        format,
+        session_id: session
+      })
       setResult(r)
     } catch (e) {
       setError(e.message)
@@ -68,9 +83,21 @@ export default function ExportPage() {
 
       <Card>
         <div className="space-y-5">
-          <Select label="Dataset" value={session} onChange={e => setSession(e.target.value)}>
-            {files.map(f => <option key={f.name}>{f.name}</option>)}
-            {files.length === 0 && <option>Comments.json</option>}
+
+          {/* ✅ Session dropdown */}
+          <Select
+            label="Dataset"
+            value={session}
+            onChange={e => setSession(e.target.value)}
+          >
+            {sessions.map(s => (
+              <option key={s.session_id} value={s.session_id}>
+                {s.session_id} ({s.video_count} videos)
+              </option>
+            ))}
+            {sessions.length === 0 && (
+              <option value="">No sessions available</option>
+            )}
           </Select>
 
           {/* Format cards */}
@@ -78,6 +105,7 @@ export default function ExportPage() {
             <label className="text-xs uppercase tracking-widest text-ink-500 font-body block mb-3">
               Export format
             </label>
+
             <div className="grid grid-cols-2 gap-3">
               {FORMATS.map(f => (
                 <button
@@ -91,18 +119,25 @@ export default function ExportPage() {
                 >
                   <div className="flex items-center gap-2 mb-1.5">
                     <FileText size={14} className={format === f.key ? 'text-acid-400' : 'text-ink-500'} />
-                    <span className={`text-sm font-body font-medium ${format === f.key ? 'text-ink-100' : 'text-ink-300'}`}>
+                    <span className={`text-sm font-body font-medium ${
+                      format === f.key ? 'text-ink-100' : 'text-ink-300'
+                    }`}>
                       {f.label}
                     </span>
-                    <Tag color={format === f.key ? 'yellow' : 'default'}>{f.ext}</Tag>
+                    <Tag color={format === f.key ? 'yellow' : 'default'}>
+                      {f.ext}
+                    </Tag>
                   </div>
-                  <p className="text-xs text-ink-500 font-body leading-relaxed">{f.desc}</p>
+
+                  <p className="text-xs text-ink-500 font-body leading-relaxed">
+                    {f.desc}
+                  </p>
                 </button>
               ))}
             </div>
           </div>
 
-          <Btn onClick={runExport} disabled={loading} size="lg">
+          <Btn onClick={runExport} disabled={loading || !session} size="lg">
             {loading
               ? <Loader2 size={16} className="animate-spin" />
               : <Download size={16} />
@@ -119,13 +154,16 @@ export default function ExportPage() {
         </div>
       </Card>
 
-      {/* Results + download links */}
+      {/* Results */}
       {result && result.files && (
         <Card>
           <div className="flex items-center gap-2 mb-5">
             <CheckCircle2 size={16} className="text-teal-500" />
-            <p className="text-sm font-body text-teal-400">Export complete</p>
+            <p className="text-sm font-body text-teal-400">
+              Export complete
+            </p>
           </div>
+
           <div className="space-y-2">
             {Object.entries(result.files).map(([key, filename]) => (
               <div
@@ -133,13 +171,16 @@ export default function ExportPage() {
                 className="flex items-center justify-between py-3 px-4 bg-ink-800 rounded-xl border border-ink-700"
               >
                 <div>
-                  <p className="text-sm font-body text-ink-200">{filename}</p>
-                  <p className="text-xs text-ink-500 font-mono mt-0.5">{key.replace(/_/g, ' ')}</p>
+                  <p className="text-sm text-ink-200">{filename}</p>
+                  <p className="text-xs text-ink-500 font-mono mt-0.5">
+                    {key.replace(/_/g, ' ')}
+                  </p>
                 </div>
+
                 <a
                   href={`/api/export/download/${encodeURIComponent(filename)}`}
                   download={filename}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ink-700 hover:bg-ink-600 border border-ink-600 rounded-lg text-xs text-ink-200 font-mono transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ink-700 hover:bg-ink-600 border border-ink-600 rounded-lg text-xs text-ink-200 font-mono"
                 >
                   <Download size={11} />
                   download
@@ -147,10 +188,6 @@ export default function ExportPage() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-ink-600 font-body mt-4">
-            Files are saved to the backend directory. Use the download buttons above to retrieve them,
-            or find them directly in your <code className="font-mono bg-ink-800 px-1 rounded">backend/</code> folder.
-          </p>
         </Card>
       )}
     </div>
