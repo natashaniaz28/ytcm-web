@@ -4,8 +4,8 @@ import { Card, SectionTitle, Btn, Select, Input, Tag } from '../components/ui'
 import { Filter, Search } from 'lucide-react'
 
 export default function FilterPage() {
-  const [files, setFiles] = useState([])
-  const [session, setSession] = useState('Comments.json')
+  const [sessions, setSessions] = useState([])
+  const [session, setSession] = useState('')
   const [terms, setTerms] = useState('')
   const [mode, setMode] = useState('and')
   const [results, setResults] = useState(null)
@@ -13,15 +13,25 @@ export default function FilterPage() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    api.listFiles().then(r => setFiles(r.files)).catch(() => {})
+    api.listSessions()
+      .then(r => {
+        setSessions(r.sessions || [])
+        if (r.sessions?.length > 0) {
+          setSession(r.sessions[0].session_id) // set default
+        }
+      })
+      .catch(() => {})
   }, [])
 
   async function runFilter() {
     const termList = terms.split(',').map(t => t.trim()).filter(Boolean)
-    if (!termList.length) return
+    if (!termList.length || !session) return
+
+    // ✅ immediate feedback
     setLoading(true)
     setError(null)
     setResults(null)
+
     try {
       const r = await api.filter({ terms: termList, mode, session_id: session })
       setResults(r)
@@ -40,9 +50,21 @@ export default function FilterPage() {
 
       <Card>
         <div className="space-y-5">
-          <Select label="Dataset" value={session} onChange={e => setSession(e.target.value)}>
-            {files.map(f => <option key={f.name}>{f.name}</option>)}
-            {files.length === 0 && <option>Comments.json</option>}
+
+          {/* ✅ Updated Session Dropdown */}
+          <Select
+            label="Dataset"
+            value={session}
+            onChange={e => setSession(e.target.value)}
+          >
+            {sessions.map(s => (
+              <option key={s.session_id} value={s.session_id}>
+                {s.session_id} ({s.video_count} videos)
+              </option>
+            ))}
+            {sessions.length === 0 && (
+              <option value="">No sessions available</option>
+            )}
           </Select>
 
           <Input
@@ -53,7 +75,10 @@ export default function FilterPage() {
           />
 
           <div className="flex gap-3 items-center">
-            <label className="text-xs uppercase tracking-widest text-ink-500 font-body">Match mode:</label>
+            <label className="text-xs uppercase tracking-widest text-ink-500 font-body">
+              Match mode:
+            </label>
+
             {['and', 'or'].map(m => (
               <button
                 key={m}
@@ -67,12 +92,15 @@ export default function FilterPage() {
                 {m.toUpperCase()}
               </button>
             ))}
+
             <span className="text-xs text-ink-600 font-body">
-              {mode === 'and' ? 'All terms must appear' : 'Any term must appear'}
+              {mode === 'and'
+                ? 'All terms must appear'
+                : 'Any term must appear'}
             </span>
           </div>
 
-          <Btn onClick={runFilter} disabled={loading || !terms.trim()}>
+          <Btn onClick={runFilter} disabled={loading || !terms.trim() || !session}>
             <Search size={14} />
             {loading ? 'Filtering…' : 'Run Filter'}
           </Btn>
@@ -89,7 +117,10 @@ export default function FilterPage() {
           <div className="flex items-center gap-3 mb-4">
             <Filter size={16} className="text-acid-400" />
             <p className="text-sm font-body text-ink-300">
-              <span className="text-acid-400 font-mono text-base">{results.matched_videos}</span> video{results.matched_videos !== 1 ? 's' : ''} matched
+              <span className="text-acid-400 font-mono text-base">
+                {results.matched_videos}
+              </span>{' '}
+              video{results.matched_videos !== 1 ? 's' : ''} matched
             </p>
           </div>
 
@@ -101,15 +132,21 @@ export default function FilterPage() {
                   className="flex items-center justify-between py-2.5 px-3 bg-ink-800 rounded-xl border border-ink-700"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-ink-200 font-body truncate">{v.title || v.video_id}</p>
-                    <p className="text-xs text-ink-500 font-mono mt-0.5">{v.video_id}</p>
+                    <p className="text-sm text-ink-200 font-body truncate">
+                      {v.title || v.video_id}
+                    </p>
+                    <p className="text-xs text-ink-500 font-mono mt-0.5">
+                      {v.video_id}
+                    </p>
                   </div>
                   <Tag color="yellow">{v.comment_count} comments</Tag>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-ink-500 font-body text-center py-6">No matches found.</p>
+            <p className="text-sm text-ink-500 font-body text-center py-6">
+              No matches found.
+            </p>
           )}
         </Card>
       )}
