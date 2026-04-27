@@ -5,8 +5,8 @@ import { Card, SectionTitle, Btn, Select, Input, PlotGallery, JobProgress, StatT
 import { Network, GitBranch, Users, Loader2 } from 'lucide-react'
 
 export default function TubeGraphPage() {
-  const [files, setFiles] = useState([])
-  const [session, setSession] = useState('Comments.json')
+  const [sessions, setSessions] = useState([])
+  const [session, setSession] = useState('')
 
   // Channel stats
   const [topN, setTopN] = useState(15)
@@ -21,19 +21,30 @@ export default function TubeGraphPage() {
   // Reply graph
   const replyJob = useJob()
 
+  // ✅ Load sessions
   useEffect(() => {
-    api.listFiles().then(r => setFiles(r.files)).catch(() => {})
+    api.listSessions()
+      .then(r => {
+        setSessions(r.sessions || [])
+        if (r.sessions?.length > 0) {
+          setSession(r.sessions[0].session_id)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   async function runChannelStats() {
+    if (!session) return
+
     setChanLoading(true)
     setChanImages(null)
     setChanData(null)
+
     try {
       const r = await api.graphChannelStats(session, topN)
       setChanImages(r.images)
       setChanData(r.top_channels)
-    } catch (e) {
+    } catch {
       setChanImages([])
     } finally {
       setChanLoading(false)
@@ -41,12 +52,16 @@ export default function TubeGraphPage() {
   }
 
   async function runNetwork() {
-    const res = await api.graphNetwork(file, netTopN)
+    if (!session) return
+
+    const res = await api.graphNetwork(session, netTopN)
     netJob.startWatching(res.job_id)
   }
 
   async function runReplyGraph() {
-    const res = await api.graphReplyGraph(file)
+    if (!session) return
+
+    const res = await api.graphReplyGraph(session)
     replyJob.startWatching(res.job_id)
   }
 
@@ -56,11 +71,22 @@ export default function TubeGraphPage() {
         TubeGraph
       </SectionTitle>
 
+      {/* ✅ Session dropdown */}
       <div className="flex items-end gap-4">
         <div className="w-64">
-          <Select label="Dataset" value={session} onChange={e => setSession(e.target.value)}>
-            {files.map(f => <option key={f.name}>{f.name}</option>)}
-            {files.length === 0 && <option>Comments.json</option>}
+          <Select
+            label="Dataset"
+            value={session}
+            onChange={e => setSession(e.target.value)}
+          >
+            {sessions.map(s => (
+              <option key={s.session_id} value={s.session_id}>
+                {s.session_id} ({s.video_count} videos)
+              </option>
+            ))}
+            {sessions.length === 0 && (
+              <option value="">No sessions available</option>
+            )}
           </Select>
         </div>
       </div>
@@ -68,8 +94,10 @@ export default function TubeGraphPage() {
       {/* Warning */}
       <div className="bg-ink-800 border border-ink-700 rounded-2xl p-4 text-xs text-ink-400 font-body">
         <p className="text-ink-300 font-medium mb-1">Performance note</p>
-        <p>Network analysis can take <span className="text-ink-200">several minutes</span> on large datasets.
-        All jobs run in the background — results appear when ready.</p>
+        <p>
+          Network analysis can take <span className="text-ink-200">several minutes</span> on large datasets.
+          All jobs run in the background — results appear when ready.
+        </p>
       </div>
 
       {/* Channel Stats */}
@@ -78,31 +106,38 @@ export default function TubeGraphPage() {
           <Users size={18} className="text-acid-400" />
           <h3 className="font-body font-medium text-ink-100">Channel Activity Stats</h3>
         </div>
+
         <p className="text-sm text-ink-500 font-body mb-4">
           Shows the most active channels broken down by role: uploader, commenter, replier.
         </p>
+
         <div className="flex items-end gap-4 mb-4">
           <Input
             label="Top N channels"
-            type="number" min={5} max={50}
+            type="number"
+            min={5}
+            max={50}
             value={topN}
             onChange={e => setTopN(e.target.value)}
             className="w-28"
           />
-          <Btn onClick={runChannelStats} disabled={chanLoading}>
+
+          <Btn onClick={runChannelStats} disabled={chanLoading || !session}>
             {chanLoading ? <Loader2 size={14} className="animate-spin" /> : <Users size={14} />}
             {chanLoading ? 'Running…' : 'Analyse Channels'}
           </Btn>
         </div>
 
-        {/* Top channels table */}
+        {/* Table */}
         {chanData && chanData.length > 0 && (
           <div className="mb-4 overflow-x-auto">
             <table className="w-full text-xs font-mono">
               <thead>
                 <tr className="border-b border-ink-700">
                   {['channel_id','as_uploader','as_commenter','as_replier','total_activity','videos_active_in'].map(h => (
-                    <th key={h} className="py-2 px-2 text-left text-ink-500 font-normal">{h.replace(/_/g,' ')}</th>
+                    <th key={h} className="py-2 px-2 text-left text-ink-500 font-normal">
+                      {h.replace(/_/g,' ')}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -131,19 +166,19 @@ export default function TubeGraphPage() {
           <Network size={18} className="text-teal-400" />
           <h3 className="font-body font-medium text-ink-100">Channel Interaction Network</h3>
         </div>
-        <p className="text-sm text-ink-500 font-body mb-4">
-          Builds an undirected graph connecting channels that co-appear in the same video comment sections.
-          Also exports a <code className="font-mono text-xs bg-ink-800 px-1 rounded">.gexf</code> file for Gephi.
-        </p>
+
         <div className="flex items-end gap-4 mb-4">
           <Input
-            label="Top N nodes to display"
-            type="number" min={10} max={200}
+            label="Top N nodes"
+            type="number"
+            min={10}
+            max={200}
             value={netTopN}
             onChange={e => setNetTopN(e.target.value)}
             className="w-32"
           />
-          <Btn onClick={runNetwork} disabled={netJob.isRunning}>
+
+          <Btn onClick={runNetwork} disabled={netJob.isRunning || !session}>
             <Network size={14} />
             {netJob.isRunning ? 'Building graph…' : 'Build Network'}
           </Btn>
@@ -159,7 +194,7 @@ export default function TubeGraphPage() {
         )}
 
         {netJob.isDone && (netJob.jobState?.images || netJob.jobState?.result?.images) && (
-          <PlotGallery images={(netJob.jobState?.images || netJob.jobState?.result?.images)} />
+          <PlotGallery images={netJob.jobState?.images || netJob.jobState?.result?.images} />
         )}
       </Card>
 
@@ -169,12 +204,8 @@ export default function TubeGraphPage() {
           <GitBranch size={18} className="text-coral-400" />
           <h3 className="font-body font-medium text-ink-100">Directed Reply Graph</h3>
         </div>
-        <p className="text-sm text-ink-500 font-body mb-4">
-          Shows directed reply relationships between channels —
-          who replies to whom across the dataset.
-          Also exports a <code className="font-mono text-xs bg-ink-800 px-1 rounded">.gexf</code> file.
-        </p>
-        <Btn onClick={runReplyGraph} disabled={replyJob.isRunning}>
+
+        <Btn onClick={runReplyGraph} disabled={replyJob.isRunning || !session}>
           <GitBranch size={14} />
           {replyJob.isRunning ? 'Building…' : 'Build Reply Graph'}
         </Btn>
@@ -183,7 +214,7 @@ export default function TubeGraphPage() {
 
         {replyJob.isDone && (replyJob.jobState?.images || replyJob.jobState?.result?.images) && (
           <div className="mt-4">
-            <PlotGallery images={(replyJob.jobState?.images || replyJob.jobState?.result?.images)} />
+            <PlotGallery images={replyJob.jobState?.images || replyJob.jobState?.result?.images} />
           </div>
         )}
       </Card>
