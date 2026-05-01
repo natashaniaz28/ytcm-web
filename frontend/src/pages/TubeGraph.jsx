@@ -166,7 +166,10 @@ export default function TubeGraphPage() {
           <Network size={18} className="text-teal-400" />
           <h3 className="font-body font-medium text-ink-100">Channel Interaction Network</h3>
         </div>
-
+  <p className="text-sm text-ink-500 font-body mb-4">
+          Builds an undirected graph connecting channels that co-appear in the same video comment sections.
+          Also exports a <code className="font-mono text-xs bg-ink-800 px-1 rounded">.gexf</code> file for Gephi.
+        </p>
         <div className="flex items-end gap-4 mb-4">
           <Input
             label="Top N nodes"
@@ -194,7 +197,7 @@ export default function TubeGraphPage() {
         )}
 
         {netJob.isDone && (netJob.jobState?.images || netJob.jobState?.result?.images) && (
-          <PlotGallery images={netJob.jobState?.images || netJob.jobState?.result?.images} />
+          <PlotGallery images={(netJob.jobState?.images || netJob.jobState?.result?.images)} />
         )}
       </Card>
 
@@ -204,7 +207,11 @@ export default function TubeGraphPage() {
           <GitBranch size={18} className="text-coral-400" />
           <h3 className="font-body font-medium text-ink-100">Directed Reply Graph</h3>
         </div>
-
+   <p className="text-sm text-ink-500 font-body mb-4">
+          Shows directed reply relationships between channels —
+          who replies to whom across the dataset.
+          Also exports a <code className="font-mono text-xs bg-ink-800 px-1 rounded">.gexf</code> file.
+        </p>
         <Btn onClick={runReplyGraph} disabled={replyJob.isRunning || !session}>
           <GitBranch size={14} />
           {replyJob.isRunning ? 'Building…' : 'Build Reply Graph'}
@@ -214,7 +221,7 @@ export default function TubeGraphPage() {
 
         {replyJob.isDone && (replyJob.jobState?.images || replyJob.jobState?.result?.images) && (
           <div className="mt-4">
-            <PlotGallery images={replyJob.jobState?.images || replyJob.jobState?.result?.images} />
+            <PlotGallery images={(replyJob.jobState?.images || replyJob.jobState?.result?.images)} />
           </div>
         )}
       </Card>
