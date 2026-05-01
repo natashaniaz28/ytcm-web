@@ -888,49 +888,43 @@ def graph_channel_stats(session_id: str = "default", top_n: int = 15):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/tubegraph/network")
-async def graph_network(background_tasks: BackgroundTasks, session_id: str = "default", top_n: int = 50):
-    job_id = str(uuid.uuid4())
-    jobs[job_id] = {"status": "pending", "result": None, "error": None}
+@app.get("/api/tubegraph/network")
+def graph_network(session_id: str = "default", top_n: int = 50):
+    try:
+        from YTCM_tubegraph import build_interaction_graph, plot_network_graph
 
-    async def run():
-        try:
-            jobs[job_id]["status"] = "running"
-            await manager.send(job_id, {"status": "running", "message": "Building interaction graph…"})
-            from YTCM_tubegraph import build_interaction_graph, plot_network_graph
-            data = get_session_data(session_id)
-            G    = build_interaction_graph(data)
-            imgs = capture_plots(plot_network_graph, G, top_n=top_n)
-            jobs[job_id].update({"status": "done",
-                "result": {"images": imgs, "nodes": G.number_of_nodes(), "edges": G.number_of_edges()}})
-            await manager.send(job_id, {"status": "done", "images": imgs,
-                "nodes": G.number_of_nodes(), "edges": G.number_of_edges()})
-        except Exception as e:
-            jobs[job_id].update({"status": "error", "error": str(e)})
-            await manager.send(job_id, {"status": "error", "error": str(e)})
+        data = get_session_data(session_id)
+        G = build_interaction_graph(data)
+
+        imgs = capture_plots(plot_network_graph, G, top_n=top_n)
+
+        return {
+            "images": imgs,
+            "nodes": G.number_of_nodes(),
+            "edges": G.number_of_edges()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     background_tasks.add_task(run)
     return {"job_id": job_id}
 
 
-@app.post("/api/tubegraph/replygraph")
-async def graph_replies(background_tasks: BackgroundTasks, session_id: str = "default"):
-    job_id = str(uuid.uuid4())
-    jobs[job_id] = {"status": "pending", "result": None, "error": None}
+@app.get("/api/tubegraph/replygraph")
+def graph_replies(session_id: str = "default"):
+    try:
+        from YTCM_tubegraph import build_reply_network, plot_reply_network
 
-    async def run():
-        try:
-            jobs[job_id]["status"] = "running"
-            await manager.send(job_id, {"status": "running", "message": "Building reply graph…"})
-            from YTCM_tubegraph import build_reply_network, plot_reply_network
-            data = get_session_data(session_id)
-            G    = build_reply_network(data, include_self=False, min_weight=1)
-            imgs = capture_plots(plot_reply_network, G, top_n=50)
-            jobs[job_id].update({"status": "done", "result": {"images": imgs}})
-            await manager.send(job_id, {"status": "done", "images": imgs})
-        except Exception as e:
-            jobs[job_id].update({"status": "error", "error": str(e)})
-            await manager.send(job_id, {"status": "error", "error": str(e)})
+        data = get_session_data(session_id)
+        G = build_reply_network(data, include_self=False, min_weight=1)
+
+        imgs = capture_plots(plot_reply_network, G, top_n=50)
+
+        return {
+            "images": imgs
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     background_tasks.add_task(run)
     return {"job_id": job_id}
