@@ -83,7 +83,7 @@ export const api = {
     `/tubegraph/network?session_id=${encodeURIComponent(sid)}&top_n=${topN}`
   ),
 
-  graphReplyGraph: (sid) => req('GET', `/tubegraph/replygraph?session_id=${sid}`),
+  graphReplyGraph: (sid) => req('GET', `/tubegraph/replygraph?session_id=${encodeURIComponent(sid)}`),
 }
 
 // WebSocket helper — works for both local and cloud
