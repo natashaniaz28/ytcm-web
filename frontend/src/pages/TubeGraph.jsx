@@ -52,12 +52,20 @@ export default function TubeGraphPage() {
   }
 
   async function runNetwork() {
-    if (!session) return
+  if (!session) return
 
-    const res = await api.graphNetwork(session, netTopN)
-     console.log("GRAPH NETWORK RESPONSE:", res) 
-    netJob.startWatching(res.job_id)
-  }
+  const res = await api.graphNetwork(session, netTopN)
+
+  console.log("GRAPH RESULT:", res)
+
+  // directly store result instead of websocket job
+  netJob.reset?.()
+
+  netJob.startWatching({
+    status: "done",
+    result: res
+  })
+}
 
   async function runReplyGraph() {
     if (!session) return
