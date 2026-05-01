@@ -55,6 +55,7 @@ export default function TubeGraphPage() {
     if (!session) return
 
     const res = await api.graphNetwork(session, netTopN)
+     console.log("GRAPH NETWORK RESPONSE:", res) 
     netJob.startWatching(res.job_id)
   }
 
@@ -62,6 +63,7 @@ export default function TubeGraphPage() {
     if (!session) return
 
     const res = await api.graphReplyGraph(session)
+      console.log("REPLY GRAPH RESPONSE:", res) 
     replyJob.startWatching(res.job_id)
   }
 
