@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
-import { useJob } from '../hooks/useJob'
 import {
   Card,
   SectionTitle,
@@ -8,7 +7,6 @@ import {
   Select,
   Input,
   PlotGallery,
-  JobProgress,
   StatTile
 } from '../components/ui'
 import { Network, GitBranch, Users, Loader2 } from 'lucide-react'
@@ -18,7 +16,7 @@ export default function TubeGraphPage() {
   const [netLoading, setNetLoading] = useState(false)
 
   const [replyResult, setReplyResult] = useState(null)
-const [replyLoading, setReplyLoading] = useState(false)
+  const [replyLoading, setReplyLoading] = useState(false)
 
   const [sessions, setSessions] = useState([])
   const [session, setSession] = useState('')
@@ -31,9 +29,6 @@ const [replyLoading, setReplyLoading] = useState(false)
 
   // Interaction network
   const [netTopN, setNetTopN] = useState(50)
-
-  // Reply graph
-  const replyJob = useJob()
 
   useEffect(() => {
     api.listSessions()
@@ -48,11 +43,9 @@ const [replyLoading, setReplyLoading] = useState(false)
 
   async function runChannelStats() {
     if (!session) return
-
     setChanLoading(true)
     setChanImages(null)
     setChanData(null)
-
     try {
       const r = await api.graphChannelStats(session, topN)
       setChanImages(r.images || [])
@@ -66,10 +59,8 @@ const [replyLoading, setReplyLoading] = useState(false)
 
   async function runNetwork() {
     if (!session) return
-
     setNetLoading(true)
     setNetResult(null)
-
     try {
       const res = await api.graphNetwork(session, netTopN)
       console.log("GRAPH RESULT:", res)
@@ -82,25 +73,20 @@ const [replyLoading, setReplyLoading] = useState(false)
     }
   }
 
- async function runReplyGraph() {
-  if (!session) return
-  setReplyLoading(true)
-  setReplyResult(null)
-  try {
-    const res = await api.graphReplyGraph(session)
-    console.log("REPLY GRAPH RESPONSE:", res)
-    setReplyResult(res)
-  } catch (err) {
-    console.error("Reply graph error:", err)
-  } finally {
-    setReplyLoading(false)
+  async function runReplyGraph() {
+    if (!session) return
+    setReplyLoading(true)
+    setReplyResult(null)
+    try {
+      const res = await api.graphReplyGraph(session)
+      console.log("REPLY GRAPH RESPONSE:", res)
+      setReplyResult(res)
+    } catch (err) {
+      console.error("Reply graph error:", err)
+    } finally {
+      setReplyLoading(false)
+    }
   }
-}
-
-  } catch (err) {
-    console.error("Reply graph error:", err)
-  }
-}
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -141,7 +127,6 @@ const [replyLoading, setReplyLoading] = useState(false)
             onChange={e => setTopN(Number(e.target.value))}
             className="w-28"
           />
-
           <Btn onClick={runChannelStats} disabled={chanLoading || !session}>
             {chanLoading ? <Loader2 size={14} className="animate-spin" /> : 'Run'}
           </Btn>
@@ -194,12 +179,9 @@ const [replyLoading, setReplyLoading] = useState(false)
             onChange={e => setNetTopN(Number(e.target.value))}
             className="w-32"
           />
-
           <Btn onClick={runNetwork} disabled={netLoading || !session}>
             {netLoading ? (
-              <>
-                <Loader2 size={14} className="animate-spin" /> Building...
-              </>
+              <><Loader2 size={14} className="animate-spin" /> Building...</>
             ) : (
               'Build Network'
             )}
@@ -224,27 +206,27 @@ const [replyLoading, setReplyLoading] = useState(false)
 
       {/* Reply Graph */}
       <Card>
-  <div className="flex items-center gap-3 mb-4">
-    <GitBranch size={18} />
-    <h3>Reply Graph</h3>
-  </div>
+        <div className="flex items-center gap-3 mb-4">
+          <GitBranch size={18} />
+          <h3>Reply Graph</h3>
+        </div>
 
-  <Btn onClick={runReplyGraph} disabled={replyLoading || !session}>
-    {replyLoading ? (
-      <><Loader2 size={14} className="animate-spin" /> Building...</>
-    ) : (
-      'Build Reply Graph'
-    )}
-  </Btn>
+        <Btn onClick={runReplyGraph} disabled={replyLoading || !session}>
+          {replyLoading ? (
+            <><Loader2 size={14} className="animate-spin" /> Building...</>
+          ) : (
+            'Build Reply Graph'
+          )}
+        </Btn>
 
-  {replyLoading && (
-    <div className="text-sm text-gray-400 mt-2">Building graph...</div>
-  )}
+        {replyLoading && (
+          <div className="text-sm text-gray-400 mt-2">Building graph...</div>
+        )}
 
-  {replyResult?.images?.length > 0 && (
-    <PlotGallery images={replyResult.images} />
-  )}
-</Card>
+        {replyResult?.images?.length > 0 && (
+          <PlotGallery images={replyResult.images} />
+        )}
+      </Card>
 
     </div>
   )
