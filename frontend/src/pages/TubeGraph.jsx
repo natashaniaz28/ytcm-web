@@ -17,6 +17,9 @@ export default function TubeGraphPage() {
   const [netResult, setNetResult] = useState(null)
   const [netLoading, setNetLoading] = useState(false)
 
+  const [replyResult, setReplyResult] = useState(null)
+const [replyLoading, setReplyLoading] = useState(false)
+
   const [sessions, setSessions] = useState([])
   const [session, setSession] = useState('')
 
@@ -81,20 +84,18 @@ export default function TubeGraphPage() {
 
  async function runReplyGraph() {
   if (!session) return
-
+  setReplyLoading(true)
+  setReplyResult(null)
   try {
     const res = await api.graphReplyGraph(session)
     console.log("REPLY GRAPH RESPONSE:", res)
-
-    // simulate job completion using hook's expected structure
-    replyJob.startWatching("__local__")
-
-    // manually override jobState via internal pattern (safe usage)
-    replyJob.jobState = {
-      isRunning: false,
-      isDone: true,
-      images: res.images || []
-    }
+    setReplyResult(res)
+  } catch (err) {
+    console.error("Reply graph error:", err)
+  } finally {
+    setReplyLoading(false)
+  }
+}
 
   } catch (err) {
     console.error("Reply graph error:", err)
@@ -223,27 +224,27 @@ export default function TubeGraphPage() {
 
       {/* Reply Graph */}
       <Card>
-        <div className="flex items-center gap-3 mb-4">
-          <GitBranch size={18} />
-          <h3>Reply Graph</h3>
-        </div>
+  <div className="flex items-center gap-3 mb-4">
+    <GitBranch size={18} />
+    <h3>Reply Graph</h3>
+  </div>
 
-        <Btn onClick={runReplyGraph} disabled={replyJob.isRunning || !session}>
-          {replyJob.isRunning ? 'Building...' : 'Build Reply Graph'}
-        </Btn>
+  <Btn onClick={runReplyGraph} disabled={replyLoading || !session}>
+    {replyLoading ? (
+      <><Loader2 size={14} className="animate-spin" /> Building...</>
+    ) : (
+      'Build Reply Graph'
+    )}
+  </Btn>
 
-        <JobProgress jobState={replyJob.jobState} />
+  {replyLoading && (
+    <div className="text-sm text-gray-400 mt-2">Building graph...</div>
+  )}
 
-        {replyJob.isDone && (
-          <PlotGallery
-            images={
-              replyJob.jobState?.images ||
-              replyJob.jobState?.result?.images ||
-              []
-            }
-          />
-        )}
-      </Card>
+  {replyResult?.images?.length > 0 && (
+    <PlotGallery images={replyResult.images} />
+  )}
+</Card>
 
     </div>
   )
