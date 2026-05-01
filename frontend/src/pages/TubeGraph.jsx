@@ -197,7 +197,9 @@ export default function TubeGraphPage() {
           </Btn>
         </div>
 
-        <JobProgress jobState={netJob.jobState} />
+        {netLoading && (
+  <div className="text-ink-400 text-sm">Building graph...</div>
+)}
 
         {netJob.isDone && netJob.jobState?.nodes != null && (
           <div className="flex gap-3 mt-3 mb-4">
@@ -206,9 +208,9 @@ export default function TubeGraphPage() {
           </div>
         )}
 
-        {netJob.isDone && (netJob.jobState?.images || netJob.jobState?.result?.images) && (
-          <PlotGallery images={(netJob.jobState?.images || netJob.jobState?.result?.images)} />
-        )}
+       {netResult?.images && (
+  <PlotGallery images={netResult.images} />
+)}
       </Card>
 
       {/* Reply Graph */}
