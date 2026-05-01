@@ -178,13 +178,13 @@ export default function ExportPage() {
                 </div>
 
                 <a
-                  href={`/api/export/download/${encodeURIComponent(filename)}`}
-                  download={filename}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ink-700 hover:bg-ink-600 border border-ink-600 rounded-lg text-xs text-ink-200 font-mono"
-                >
-                  <Download size={11} />
-                  download
-                </a>
+                   href={api.exportDownloadUrl(filename)}  // ← was: `/api/export/download/${encodeURIComponent(filename)}`
+  download={filename}
+  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ink-700 hover:bg-ink-600 border border-ink-600 rounded-lg text-xs text-ink-200 font-mono"
+>
+  <Download size={11} />
+  download
+</a>
               </div>
             ))}
           </div>
