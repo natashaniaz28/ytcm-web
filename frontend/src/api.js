@@ -77,6 +77,8 @@ export const api = {
   talkTopics:        (config)           => req('POST', '/tubetalk/topics',    config),
 
   // TubeGraph
+  graphChannelStats: (sid, topN) =>
+  req('GET', `/tubegraph/channelstats?session_id=${encodeURIComponent(sid)}&top_n=${topN}`),
   graphNetwork: (sid, topN) =>
   req(
     'GET',
