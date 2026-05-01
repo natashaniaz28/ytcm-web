@@ -5,6 +5,8 @@ import { Card, SectionTitle, Btn, Select, Input, PlotGallery, JobProgress, StatT
 import { Network, GitBranch, Users, Loader2 } from 'lucide-react'
 
 export default function TubeGraphPage() {
+  const [netResult, setNetResult] = useState(null)
+const [netLoading, setNetLoading] = useState(false)
   const [sessions, setSessions] = useState([])
   const [session, setSession] = useState('')
 
@@ -16,7 +18,6 @@ export default function TubeGraphPage() {
 
   // Interaction network
   const [netTopN, setNetTopN] = useState(50)
-  const netJob = useJob()
 
   // Reply graph
   const replyJob = useJob()
@@ -54,17 +55,15 @@ export default function TubeGraphPage() {
   async function runNetwork() {
   if (!session) return
 
-  const res = await api.graphNetwork(session, netTopN)
+  setNetLoading(true)
 
-  console.log("GRAPH RESULT:", res)
-
-  // directly store result instead of websocket job
-  netJob.reset?.()
-
-  netJob.startWatching({
-    status: "done",
-    result: res
-  })
+  try {
+    const res = await api.graphNetwork(session, netTopN)
+    console.log("GRAPH RESULT:", res)
+    setNetResult(res)
+  } finally {
+    setNetLoading(false)
+  }
 }
 
   async function runReplyGraph() {
@@ -191,7 +190,7 @@ export default function TubeGraphPage() {
             className="w-32"
           />
 
-          <Btn onClick={runNetwork} disabled={netJob.isRunning || !session}>
+          <Btn onClick={runNetwork} disabled={netLoading || !session}>
             <Network size={14} />
             {netJob.isRunning ? 'Building graph…' : 'Build Network'}
           </Btn>
@@ -201,10 +200,10 @@ export default function TubeGraphPage() {
   <div className="text-ink-400 text-sm">Building graph...</div>
 )}
 
-        {netJob.isDone && netJob.jobState?.nodes != null && (
+        {netJob.isDone && netResult?.nodes != null && (
           <div className="flex gap-3 mt-3 mb-4">
-            <StatTile label="Nodes" value={netJob.jobState.nodes?.toLocaleString()} />
-            <StatTile label="Edges" value={netJob.jobState.edges?.toLocaleString()} />
+            <StatTile label="Nodes" value={netResult?.nodes?.toLocaleString()} />
+            <StatTile label="Edges" value={netResult?.edges?.toLocaleString()} />
           </div>
         )}
 
