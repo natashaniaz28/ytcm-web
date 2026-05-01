@@ -80,13 +80,29 @@ export default function TubeGraphPage() {
   }
 
   async function runReplyGraph() {
-    if (!session) return
+  if (!session) return
 
+  replyJob.setJobState({ isRunning: true })
+
+  try {
     const res = await api.graphReplyGraph(session)
     console.log("REPLY GRAPH RESPONSE:", res)
 
-    replyJob.startWatching(res.job_id)
+    replyJob.setJobState({
+      isRunning: false,
+      isDone: true,
+      jobState: {
+        images: res.images || []
+      }
+    })
+  } catch (err) {
+    console.error("Reply graph error:", err)
+    replyJob.setJobState({
+      isRunning: false,
+      isError: true
+    })
   }
+}
 
   return (
     <div className="space-y-6 animate-fade-up">
