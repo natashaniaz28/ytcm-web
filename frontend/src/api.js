@@ -78,8 +78,8 @@ export const api = {
 
   // TubeGraph
   graphChannelStats: (sid, topN) => req('GET',  `/tubegraph/channelstats?session_id=${sid}&top_n=${topN}`),
-  graphNetwork:      (sid, topN) => req('POST', `/tubegraph/network?session_id=${sid}&top_n=${topN}`),
-  graphReplyGraph:   (sid)       => req('POST', `/tubegraph/replygraph?session_id=${sid}`),
+  graphNetwork: (sid, topN) => req('POST', '/tubegraph/network',  session_id: sid,  top_n: Number(topN)}),
+  graphReplyGraph: (sid) =>req('POST', '/tubegraph/replygraph', {  session_id: sid }),
 }
 
 // WebSocket helper — works for both local and cloud
