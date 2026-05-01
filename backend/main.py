@@ -214,15 +214,20 @@ def capture_plots(func, *args, **kwargs):
 
     plt.show = mock_show
     try:
-        # ✅ CALL THE FUNCTION
-        func(*args, **kwargs)
+        result = func(*args, **kwargs)  # ← capture return value
 
-        # ✅ also capture if function didn't call plt.show()
+        # If function returned a base64 string directly, use it
+        if isinstance(result, str) and result.startswith("data:image"):
+            captured.append(result)
+        elif isinstance(result, list):  # or a list of them
+            captured.extend([r for r in result if isinstance(r, str) and r.startswith("data:image")])
+
+        # Also catch any figures that didn't go through plt.show() or fig_to_base64()
         for fig_num in plt.get_fignums():
             fig = plt.figure(fig_num)
             captured.append(fig_to_base64(fig))
-
         plt.close("all")
+
     finally:
         plt.show = original_show
 
