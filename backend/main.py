@@ -906,8 +906,6 @@ def graph_network(session_id: str = "default", top_n: int = 50):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    background_tasks.add_task(run)
-    return {"job_id": job_id}
 
 
 @app.get("/api/tubegraph/replygraph")
@@ -925,9 +923,6 @@ def graph_replies(session_id: str = "default"):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-    background_tasks.add_task(run)
-    return {"job_id": job_id}
 
 
 # ---------------------------------------------------------------------------
