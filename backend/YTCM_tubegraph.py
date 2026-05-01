@@ -738,12 +738,7 @@ def plot_top_channels(df, role="commenter", top_n=10):
 
 
 def plot_network_graph(G, top_n=None, layout="spring", seed=42, figsize=(12,12), node_size=200, with_labels=True,
-                       edge_cmap=plt.cm.Blues,):
-    """
-    Plot a (sub)graph with configurable layout and styling.
-    layout might be 'spring', 'kamada_kawai', 'circular', 'random'. Some take ages to complete!
-    """
-
+                       edge_cmap=plt.cm.Blues):
     H = G
 
     if top_n:
@@ -762,17 +757,20 @@ def plot_network_graph(G, top_n=None, layout="spring", seed=42, figsize=(12,12),
 
     weights = [H[u][v]["weight"] for u, v in H.edges()]
 
-    plt.figure(figsize=figsize)
+    # ✅ Only ONE figure/axes — removed the duplicate plt.figure() call
     fig, ax = plt.subplots(figsize=figsize)
 
-    nx.draw(H, pos, with_labels=with_labels, node_size=node_size, edge_color=weights, edge_cmap=edge_cmap, ax=ax)
+    nx.draw(H, pos, with_labels=with_labels, node_size=node_size,
+            edge_color=weights, edge_cmap=edge_cmap, ax=ax)
 
-    ax.set_title("Co-Occurrence Network of YouTube Channels in Comment Sections:\n" +
-                 "YouTube Channels Connected by Shared Comment Activity", fontsize=16, pad=20)
+    ax.set_title(
+        "Co-Occurrence Network of YouTube Channels in Comment Sections:\n"
+        "YouTube Channels Connected by Shared Comment Activity",
+        fontsize=16, pad=20
+    )
     ax.axis("off")
 
     plt.tight_layout()
-    # plt.show()
     return fig_to_base64()
 
 
