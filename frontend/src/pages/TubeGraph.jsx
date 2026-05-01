@@ -11,7 +11,6 @@ import {
   JobProgress,
   StatTile
 } from '../components/ui'
-
 import { Network, GitBranch, Users, Loader2 } from 'lucide-react'
 
 export default function TubeGraphPage() {
@@ -30,10 +29,9 @@ export default function TubeGraphPage() {
   // Interaction network
   const [netTopN, setNetTopN] = useState(50)
 
-  // Reply graph (still async job system)
+  // Reply graph
   const replyJob = useJob()
 
-  // ---------------- Load sessions ----------------
   useEffect(() => {
     api.listSessions()
       .then(r => {
@@ -45,7 +43,6 @@ export default function TubeGraphPage() {
       .catch(() => {})
   }, [])
 
-  // ---------------- Channel stats ----------------
   async function runChannelStats() {
     if (!session) return
 
@@ -55,17 +52,15 @@ export default function TubeGraphPage() {
 
     try {
       const r = await api.graphChannelStats(session, topN)
-      setChanImages(r.images)
-      setChanData(r.top_channels)
+      setChanImages(r.images || [])
+      setChanData(r.top_channels || [])
     } catch {
       setChanImages([])
-      setChanData([])
     } finally {
       setChanLoading(false)
     }
   }
 
-  // ---------------- Network graph (FIXED) ----------------
   async function runNetwork() {
     if (!session) return
 
@@ -77,24 +72,20 @@ export default function TubeGraphPage() {
       console.log("GRAPH RESULT:", res)
       setNetResult(res)
     } catch (err) {
-      console.error("Network graph error:", err)
+      console.error("Network error:", err)
       setNetResult(null)
     } finally {
       setNetLoading(false)
     }
   }
 
-  // ---------------- Reply graph ----------------
   async function runReplyGraph() {
     if (!session) return
 
-    try {
-      const res = await api.graphReplyGraph(session)
-      console.log("REPLY GRAPH RESPONSE:", res)
-      replyJob.startWatching(res.job_id)
-    } catch (err) {
-      console.error("Reply graph error:", err)
-    }
+    const res = await api.graphReplyGraph(session)
+    console.log("REPLY GRAPH RESPONSE:", res)
+
+    replyJob.startWatching(res.job_id)
   }
 
   return (
@@ -104,7 +95,7 @@ export default function TubeGraphPage() {
         TubeGraph
       </SectionTitle>
 
-      {/* ---------------- Session dropdown ---------------- */}
+      {/* Session */}
       <div className="flex items-end gap-4">
         <div className="w-64">
           <Select
@@ -117,81 +108,53 @@ export default function TubeGraphPage() {
                 {s.session_id} ({s.video_count} videos)
               </option>
             ))}
-            {sessions.length === 0 && (
-              <option value="">No sessions available</option>
-            )}
           </Select>
         </div>
       </div>
 
-      {/* ---------------- Warning ---------------- */}
-      <div className="bg-ink-800 border border-ink-700 rounded-2xl p-4 text-xs text-ink-400 font-body">
-        <p className="text-ink-300 font-medium mb-1">Performance note</p>
-        <p>
-          Network analysis can take <span className="text-ink-200">several minutes</span>.
-          All jobs run in background.
-        </p>
-      </div>
-
-      {/* ---------------- Channel stats ---------------- */}
+      {/* Channel Stats */}
       <Card>
         <div className="flex items-center gap-3 mb-4">
           <Users size={18} className="text-acid-400" />
-          <h3 className="font-body font-medium text-ink-100">
-            Channel Activity Stats
-          </h3>
+          <h3 className="font-medium">Channel Activity Stats</h3>
         </div>
 
         <div className="flex items-end gap-4 mb-4">
           <Input
-            label="Top N channels"
+            label="Top N"
             type="number"
-            min={5}
-            max={50}
             value={topN}
-            onChange={e => setTopN(e.target.value)}
+            onChange={e => setTopN(Number(e.target.value))}
             className="w-28"
           />
 
           <Btn onClick={runChannelStats} disabled={chanLoading || !session}>
-            {chanLoading ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Users size={14} />
-            )}
-            {chanLoading ? 'Running…' : 'Analyse Channels'}
+            {chanLoading ? <Loader2 size={14} className="animate-spin" /> : 'Run'}
           </Btn>
         </div>
 
         {chanData?.length > 0 && (
-          <div className="mb-4 overflow-x-auto">
-            <table className="w-full text-xs font-mono">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-ink-700">
-                  {[
-                    'channel_id',
-                    'as_uploader',
-                    'as_commenter',
-                    'as_replier',
-                    'total_activity',
-                    'videos_active_in'
-                  ].map(h => (
-                    <th key={h} className="py-2 px-2 text-left text-ink-500 font-normal">
-                      {h.replace(/_/g, ' ')}
-                    </th>
-                  ))}
+                <tr>
+                  <th>Channel</th>
+                  <th>Uploader</th>
+                  <th>Commenter</th>
+                  <th>Replier</th>
+                  <th>Total</th>
+                  <th>Videos</th>
                 </tr>
               </thead>
-
               <tbody>
                 {chanData.slice(0, 10).map((row, i) => (
-                  <tr key={i} className="border-b border-ink-800 hover:bg-ink-800/50">
-                    <td className="py-2 px-2 text-ink-300 truncate">{row.channel_id}</td>
-                    <td className="py-2 px-2 text-ink-400">{row.as_uploader}</td>
-                    <td className="py-2 px-2 text-acid-400">{row.as_commenter}</td>
-                    <td className="py-2 px-2 text-teal-400">{row.as_replier}</td>
-                    <td className="py-2 px-2 text-ink-200 font-medium">{row.total_activity}</td>
-                    <td className="py-2 px-2 text-ink-400">{row.videos_active_in}</td>
+                  <tr key={i}>
+                    <td>{row.channel_id}</td>
+                    <td>{row.as_uploader}</td>
+                    <td>{row.as_commenter}</td>
+                    <td>{row.as_replier}</td>
+                    <td>{row.total_activity}</td>
+                    <td>{row.videos_active_in}</td>
                   </tr>
                 ))}
               </tbody>
@@ -199,63 +162,61 @@ export default function TubeGraphPage() {
           </div>
         )}
 
-        <PlotGallery images={chanImages} loading={chanLoading} />
+        <PlotGallery images={chanImages || []} loading={chanLoading} />
       </Card>
 
-      {/* ---------------- Network graph ---------------- */}
+      {/* Network */}
       <Card>
         <div className="flex items-center gap-3 mb-4">
-          <Network size={18} className="text-teal-400" />
-          <h3 className="font-body font-medium text-ink-100">
-            Channel Interaction Network
-          </h3>
+          <Network size={18} />
+          <h3>Channel Interaction Network</h3>
         </div>
 
         <div className="flex items-end gap-4 mb-4">
           <Input
-            label="Top N nodes"
+            label="Top Nodes"
             type="number"
-            min={10}
-            max={200}
             value={netTopN}
-            onChange={e => setNetTopN(e.target.value)}
+            onChange={e => setNetTopN(Number(e.target.value))}
             className="w-32"
           />
 
           <Btn onClick={runNetwork} disabled={netLoading || !session}>
-            <Network size={14} />
-            {netLoading ? 'Building graph…' : 'Build Network'}
+            {netLoading ? (
+              <>
+                <Loader2 size={14} className="animate-spin" /> Building...
+              </>
+            ) : (
+              'Build Network'
+            )}
           </Btn>
         </div>
 
         {netLoading && (
-          <div className="text-ink-400 text-sm">Building graph...</div>
+          <div className="text-sm text-gray-400">Building graph...</div>
         )}
 
         {netResult?.nodes != null && (
-          <div className="flex gap-3 mt-3 mb-4">
+          <div className="flex gap-3 mb-4">
             <StatTile label="Nodes" value={netResult.nodes.toLocaleString()} />
             <StatTile label="Edges" value={netResult.edges.toLocaleString()} />
           </div>
         )}
 
-        {netResult?.images && (
+        {netResult?.images?.length > 0 && (
           <PlotGallery images={netResult.images} />
         )}
       </Card>
 
-      {/* ---------------- Reply graph ---------------- */}
+      {/* Reply Graph */}
       <Card>
         <div className="flex items-center gap-3 mb-4">
-          <GitBranch size={18} className="text-coral-400" />
-          <h3 className="font-body font-medium text-ink-100">
-            Directed Reply Graph
-          </h3>
+          <GitBranch size={18} />
+          <h3>Reply Graph</h3>
         </div>
 
         <Btn onClick={runReplyGraph} disabled={replyJob.isRunning || !session}>
-          <GitBranch size={14} />
-          {replyJob.isRunning ? 'Building…' : 'Build Reply Graph'}
+          {replyJob.isRunning ? 'Building...' : 'Build Reply Graph'}
         </Btn>
 
         <JobProgress jobState={replyJob.jobState} />
@@ -264,11 +225,13 @@ export default function TubeGraphPage() {
           <PlotGallery
             images={
               replyJob.jobState?.images ||
-              replyJob.jobState?.result?.images
+              replyJob.jobState?.result?.images ||
+              []
             }
           />
         )}
       </Card>
+
     </div>
   )
 }
