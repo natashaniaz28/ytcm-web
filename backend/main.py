@@ -202,7 +202,7 @@ def fig_to_base64(fig=None) -> str:
     return f"data:image/png;base64,{encoded}"
 
 
-def capture_plots(func, *args, **kwargs) -> List[str]:
+def capture_plots(func, *args, **kwargs):
     captured = []
     original_show = plt.show
 
@@ -210,12 +210,14 @@ def capture_plots(func, *args, **kwargs) -> List[str]:
         for fig_num in plt.get_fignums():
             fig = plt.figure(fig_num)
             captured.append(fig_to_base64(fig))
-
         plt.close("all")
 
     plt.show = mock_show
     try:
-    # catch any remaining open figures
+        # ✅ CALL THE FUNCTION
+        func(*args, **kwargs)
+
+        # ✅ also capture if function didn't call plt.show()
         for fig_num in plt.get_fignums():
             fig = plt.figure(fig_num)
             captured.append(fig_to_base64(fig))
@@ -223,6 +225,7 @@ def capture_plots(func, *args, **kwargs) -> List[str]:
         plt.close("all")
     finally:
         plt.show = original_show
+
     return captured
 
 
