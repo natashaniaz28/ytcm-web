@@ -130,6 +130,10 @@ class ExportConfig(BaseModel):
     format: str = "all"
     session_id: str = "default"
 
+class QuickReportConfig(BaseModel):
+    keyword: str
+    num_videos: int = 3
+
 class WordcloudConfig(BaseModel):
     session_id: str = "default"
     ngram_min: int = 1
@@ -928,6 +932,240 @@ def graph_replies(session_id: str = "default"):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# Quick Report
+# ---------------------------------------------------------------------------
+@app.post("/api/quickreport")
+async def quick_report(config: QuickReportConfig, background_tasks: BackgroundTasks):
+    num_videos = max(1, min(5, config.num_videos))
+    job_id = str(uuid.uuid4())
+    jobs[job_id] = {"status": "pending", "step": 0, "total_steps": 5, "result": None, "error": None}
+
+    async def run():
+        try:
+            session_id = str(uuid.uuid4())[:8]
+
+            # ── Step 1: Search YouTube ────────────────────────────────────────
+            jobs[job_id].update({"status": "running", "step": 1})
+            await manager.send(job_id, {
+                "status": "running", "step": 1, "total_steps": 5,
+                "message": f'Searching YouTube for "{config.keyword}"…',
+            })
+
+            api_key = get_api_key()
+            if not api_key:
+                raise ValueError("No YouTube API key configured. Add it in Settings first.")
+
+            from YTCM_api_utils import init_youtube_service, get_video_information
+            from YTCM_comments_utils import get_comments
+            import YTCM_config as cfg
+
+            youtube = init_youtube_service(api_key)
+
+            search_resp = youtube.search().list(
+                q=config.keyword,
+                type="video",
+                part="snippet",
+                maxResults=num_videos,
+                order="relevance",
+            ).execute()
+
+            video_ids = [
+                item["id"]["videoId"]
+                for item in search_resp.get("items", [])
+                if item.get("id", {}).get("videoId")
+            ][:num_videos]
+
+            if not video_ids:
+                raise ValueError(f'No videos found for keyword "{config.keyword}".')
+
+            # ── Step 2: Download comments ─────────────────────────────────────
+            jobs[job_id].update({"step": 2})
+            await manager.send(job_id, {
+                "status": "running", "step": 2, "total_steps": 5,
+                "message": f"Downloading comments for {len(video_ids)} video(s)…",
+            })
+
+            all_data: dict = {}
+            for idx, video_id in enumerate(video_ids, 1):
+                await manager.send(job_id, {
+                    "status": "running", "step": 2, "total_steps": 5,
+                    "message": f"Video {idx}/{len(video_ids)}: fetching comments…",
+                })
+                try:
+                    video_info = get_video_information(youtube, video_id)
+                    if not video_info:
+                        continue
+                    comments, quota_exceeded = get_comments(
+                        youtube, part="snippet", videoId=video_id,
+                        maxResults=cfg.MAX_RESULTS, textFormat="plainText",
+                    )
+                    if quota_exceeded:
+                        raise ValueError("YouTube API quota exceeded. Try again tomorrow.")
+                    all_data[video_id] = {"video_info": video_info, "comments": comments or []}
+                except ValueError:
+                    raise
+                except Exception as e:
+                    logger.error(f"Skipping video {video_id}: {e}")
+
+            if not all_data:
+                raise ValueError("Could not retrieve data for any of the videos.")
+
+            save_session_data(session_id, all_data)
+
+            # ── Step 3: Enrich ────────────────────────────────────────────────
+            jobs[job_id].update({"step": 3})
+            await manager.send(job_id, {
+                "status": "running", "step": 3, "total_steps": 5,
+                "message": "Detecting languages and running sentiment analysis…",
+            })
+
+            from YTCM_data_enrichment_utils import detect_language, blob_analysis, vader_analysis
+
+            for vid_data in all_data.values():
+                info = vid_data.get("video_info", {})
+                for field in ("title", "description"):
+                    info[f"{field}_language"] = detect_language(info.get(field, "") or "")
+                for comment in vid_data.get("comments", []):
+                    comment["language"] = detect_language(comment.get("text", "") or "")
+                    if comment.get("language") == "en" and comment.get("text"):
+                        try:
+                            comment["blob_sentiment"] = blob_analysis(comment["text"])
+                            comment["vader_sentiment"] = vader_analysis(comment["text"])
+                        except Exception:
+                            comment["blob_sentiment"] = comment["vader_sentiment"] = "N/A"
+                    for reply in comment.get("replies", []):
+                        reply["language"] = detect_language(reply.get("text", "") or "")
+                        if reply.get("language") == "en" and reply.get("text"):
+                            try:
+                                reply["blob_sentiment"] = blob_analysis(reply["text"])
+                                reply["vader_sentiment"] = vader_analysis(reply["text"])
+                            except Exception:
+                                reply["blob_sentiment"] = reply["vader_sentiment"] = "N/A"
+
+            save_session_data(session_id, all_data)
+
+            # ── Step 4: Run all analyses ──────────────────────────────────────
+            jobs[job_id].update({"step": 4})
+            await manager.send(job_id, {
+                "status": "running", "step": 4, "total_steps": 5,
+                "message": "Generating charts and graphs…",
+            })
+
+            plot_images: dict = {}
+
+            try:
+                from YTCM_tubescope import (
+                    analyze_comments, group_comments_by_date,
+                    plot_comments_over_time, analyze_sentiment_over_time,
+                    plot_sentiment_over_time, plot_sentiment_distribution,
+                    plot_comment_likes_distribution, plot_interactions_by_weekday,
+                    plot_views_vs_comments, analyze_views_static,
+                    plot_uploads_over_time, plot_participation_timeline,
+                )
+                all_comments_flat = [c for vd in all_data.values() for c in vd.get("comments", [])]
+                df = analyze_comments(all_comments_flat)
+                plot_images["activity"]       = capture_plots(plot_comments_over_time, group_comments_by_date(df))
+                plot_images["sentiment_trend"]= capture_plots(plot_sentiment_over_time, analyze_sentiment_over_time(df))
+                plot_images["sentiment_dist"] = capture_plots(plot_sentiment_distribution, df)
+                plot_images["likes"]          = capture_plots(plot_comment_likes_distribution, df)
+                plot_images["weekdays"]       = capture_plots(plot_interactions_by_weekday, all_data)
+                plot_images["views"]          = (capture_plots(plot_views_vs_comments, all_data)
+                                                 + capture_plots(analyze_views_static, all_data))
+                plot_images["uploads"]        = capture_plots(plot_uploads_over_time, all_data)
+                plot_images["channels"]       = capture_plots(plot_participation_timeline, all_data)
+            except Exception as e:
+                logger.error(f"TubeScope analysis error: {e}")
+
+            try:
+                from YTCM_tubetalk import plot_language_distribution, run_wordcloud
+                plot_images["languages"] = capture_plots(
+                    plot_language_distribution, all_data, level="comment", top_n=20, normalize=False,
+                )
+                plot_images["wordcloud"] = capture_plots(
+                    run_wordcloud, all_data, ngram_range=(1, 2), min_df=2, max_df=0.95,
+                )
+            except Exception as e:
+                logger.error(f"TubeTalk analysis error: {e}")
+
+            try:
+                from YTCM_tubegraph import (
+                    channel_occurrence_stats, plot_top_channels,
+                    build_interaction_graph, plot_network_graph,
+                )
+                df_ch = channel_occurrence_stats(all_data)
+                ch_imgs = []
+                for role in ("uploader", "commenter", "replier", "total"):
+                    ch_imgs += capture_plots(plot_top_channels, df_ch, role=role, top_n=15)
+                plot_images["channelstats"] = ch_imgs
+
+                G = build_interaction_graph(all_data)
+                plot_images["network"] = capture_plots(plot_network_graph, G, top_n=50)
+            except Exception as e:
+                logger.error(f"TubeGraph analysis error: {e}")
+
+            # ── Step 5: Generate PDF ──────────────────────────────────────────
+            jobs[job_id].update({"step": 5})
+            await manager.send(job_id, {
+                "status": "running", "step": 5, "total_steps": 5,
+                "message": "Building PDF report…",
+            })
+
+            from YTCM_quickreport import generate_pdf
+
+            pdf_filename = f"quickreport_{job_id}.pdf"
+            pdf_path = WORK_DIR / pdf_filename
+
+            report_summary = {
+                "keyword":        config.keyword,
+                "num_videos":     len(all_data),
+                "total_comments": sum(len(v.get("comments", [])) for v in all_data.values()),
+                "video_titles":   [
+                    v.get("video_info", {}).get("title", vid)
+                    for vid, v in all_data.items()
+                ],
+            }
+
+            generate_pdf(str(pdf_path), report_summary, plot_images)
+
+            jobs[job_id].update({
+                "status": "done",
+                "result": {
+                    "pdf_file":   pdf_filename,
+                    "session_id": session_id,
+                    "summary":    report_summary,
+                },
+            })
+            await manager.send(job_id, {
+                "status":     "done",
+                "step":       5,
+                "total_steps": 5,
+                "pdf_file":   pdf_filename,
+                "session_id": session_id,
+                "summary":    report_summary,
+                "message":    "Report generated successfully!",
+            })
+
+        except Exception as e:
+            logger.error(f"Quick report job {job_id} failed: {e}")
+            jobs[job_id].update({"status": "error", "error": str(e)})
+            await manager.send(job_id, {"status": "error", "error": str(e)})
+
+    background_tasks.add_task(run)
+    return {"job_id": job_id}
+
+
+@app.get("/api/quickreport/download/{filename}")
+def download_quickreport(filename: str):
+    safe_name = Path(filename).name
+    if not safe_name.startswith("quickreport_") or not safe_name.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    path = WORK_DIR / safe_name
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Report not found. It may have expired.")
+    return FileResponse(path=str(path), filename=safe_name, media_type="application/pdf")
 
 
 # ---------------------------------------------------------------------------

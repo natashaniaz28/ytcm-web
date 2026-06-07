@@ -86,6 +86,10 @@ export const api = {
   ),
 
   graphReplyGraph: (sid) => req('GET', `/tubegraph/replygraph?session_id=${encodeURIComponent(sid)}`),
+
+  // Quick Report
+  quickReport:            (config)   => req('POST', '/quickreport', config),
+  quickReportDownloadUrl: (filename) => `${BASE}/quickreport/download/${encodeURIComponent(filename)}`,
 }
 
 // WebSocket helper — works for both local and cloud

@@ -20,3 +20,4 @@ wordcloud==1.9.3
 scipy==1.14.1
 tqdm==4.66.5
 python-dateutil==2.9.0.post0
+reportlab==4.2.5

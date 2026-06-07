@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { clsx } from 'clsx'
 import {
   Home, Search, Download, Languages, BarChart3,
-  Network, Settings, FileText, Filter, Cpu
+  Network, Settings, FileText, Filter, Cpu, Zap
 } from 'lucide-react'
 
 const NAV = [
@@ -16,6 +16,7 @@ const NAV = [
   { to: '/tubegraph',   icon: Network,    label: 'TubeGraph' },
   { to: '/export',      icon: FileText,   label: 'Export' },
   { to: '/settings',    icon: Settings,   label: 'Settings' },
+  { to: '/quickreport', icon: Zap,        label: 'Quick Report' },
 ]
 
 export default function Sidebar() {

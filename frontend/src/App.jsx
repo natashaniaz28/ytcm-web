@@ -10,6 +10,7 @@ import TubeTalkPage  from './pages/TubeTalk'
 import TubeGraphPage from './pages/TubeGraph'
 import ExportPage  from './pages/Export'
 import SettingsPage from './pages/Settings'
+import QuickReportPage from './pages/QuickReport'
 
 export default function App() {
   return (
@@ -34,7 +35,8 @@ export default function App() {
               <Route path="/tubetalk"   element={<TubeTalkPage />} />
               <Route path="/tubegraph"  element={<TubeGraphPage />} />
               <Route path="/export"     element={<ExportPage />} />
-              <Route path="/settings"   element={<SettingsPage />} />
+              <Route path="/settings"      element={<SettingsPage />} />
+              <Route path="/quickreport"  element={<QuickReportPage />} />
             </Routes>
           </div>
         </main>
