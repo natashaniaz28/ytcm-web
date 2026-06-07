@@ -69,7 +69,9 @@ export default function QuickReportPage() {
       const stop = watchJob(job_id, (msg) => {
         setJobState(msg)
         if (msg.status === 'done') {
-          setPdfFile(msg.pdf_file)
+          // pdf_file can be top-level (live WS push) or inside result (WS reconnect)
+          const file = msg.pdf_file || msg.result?.pdf_file
+          setPdfFile(file)
           setRunning(false)
           stop()
         } else if (msg.status === 'error') {

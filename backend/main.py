@@ -1131,7 +1131,12 @@ async def quick_report(config: QuickReportConfig, background_tasks: BackgroundTa
             generate_pdf(str(pdf_path), report_summary, plot_images)
 
             jobs[job_id].update({
-                "status": "done",
+                "status":     "done",
+                "step":       5,
+                "total_steps": 5,
+                "pdf_file":   pdf_filename,   # top-level so WS reconnects see it
+                "session_id": session_id,
+                "summary":    report_summary,
                 "result": {
                     "pdf_file":   pdf_filename,
                     "session_id": session_id,
