@@ -1,0 +1,115 @@
+songs:
+  stay_with_me:
+    title: Mayonaka no Door / Stay With Me
+    artist: Miki Matsubara
+    release_year: 1979
+    variants:
+    - asset_id: "1505076230572433"
+      label: original_club_mix
+    - asset_id: "674953778884793"
+      label: single_ver
+    - asset_id: "1509301030123984"
+      label: "2024"
+    - asset_id: "2079334696233879"
+      label: 2023_mix_karaoke
+    - asset_id: "1858847018170787"
+      label: classic
+  flyday_chinatown:
+    title: Flyday Chinatown
+    artist: Yasuha
+    release_year: 1981
+    variants:
+    - asset_id: "1820243208165151"
+      label: fly_day_chinatown
+    - asset_id: "1287978805459988"
+      label: fly_day_chinatown
+    - asset_id: "2395229670873443"
+      label: flyday_chinatown_by_yasuha
+    - asset_id: "462183743557700"
+      label: flyday_chinatown
+    - asset_id: "1036926453687781"
+      label: chinatown_flyday_future
+    - asset_id: "4932555760130790"
+      label: flayday_chinatown
+    - asset_id: "621493549230601"
+      label: fly_day_chinatown
+    - asset_id: "2038236483792313"
+      label: fly_day_chinatown___lofi
+    - asset_id: "2045839379621436"
+      label: fly_day_chinatown
+    - asset_id: "1255368962805331"
+      label: flyday_chinatown
+  remember_summer_days:
+    title: Remember Summer Days
+    artist: Anri
+    variants:
+    - asset_id: "1010873193417362"
+      label: remember_summer_days
+    - asset_id: "2621993881375326"
+      label: remember_summer_days__night_te
+    - asset_id: "522890168821626"
+      label: remember_summer_days__cover_fr
+  last_summer_whisper:
+    title: Last Summer Whisper
+    artist: Anri
+    variants:
+    - asset_id: "1010465973460092"
+      label: last_summer_whisper
+    - asset_id: "437891847482554"
+      label: last_summer_whisper__from__anr
+  stay_by_me:
+    title: Stay By Me
+    artist: Anri
+    variants:
+    - asset_id: "622758365119864"
+      label: stay_by_me
+  fantasy:
+    title: Fantasy
+    artist: Meiko Nakahara
+    variants:
+    - asset_id: "498823517299190"
+      label: fantasy
+  i_cant_stop_the_loneliness:
+    title: I Can't Stop the Loneliness
+    artist: Anri
+    variants:
+    - asset_id: "565161304404905"
+      label: kanashimi_ga_tomaranai_i_can_t
+    - asset_id: "1690851338538677"
+      label: 悲しみがとまらない
+    - asset_id: "1030464257489367"
+      label: i_can_t_stop_the_loneliness__f
+    - asset_id: "1530441104530947"
+      label: 悲しみがとまらない
+  riverside_hotel:
+    title: Riverside Hotel
+    artist: Omega Tribe
+    variants:
+    - asset_id: "251773463030254"
+      label: riverside_hotel
+    - asset_id: "1063818528410282"
+      label: riverside_hotel_2020_remix___2
+    - asset_id: "1583478919544649"
+      label: riverside_hotel
+  kimi_wa_1000%:
+    title: Kimi wa 1000%
+    artist: Omega Tribe
+    release_year: 1986
+    variants:
+    - asset_id: "1267478561393201"
+      label: kimi_wa_1000
+    - asset_id: "739392255279411"
+      label: kimi_wa_1000___single_mix_vers
+    - asset_id: "344260317835386"
+      label: kimi_wa_1000___live_at_shibuya
+  dramatic_rain:
+    title: Dramatic Rain
+    artist: Junichi Inagaki
+    release_year: 1982
+    variants:
+    - asset_id: "1984373215198744"
+      label: dramatic_rain
+    - asset_id: "1550945852618912"
+      label: dramatic_rain
+    - asset_id: "274935620077431"
+      label: dramatic_rain

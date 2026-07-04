@@ -1,0 +1,77 @@
+[project]
+name = "nami"
+version = "4.0.0"
+description = "Analysis Pipeline for Instagram Reels"
+requires-python = ">=3.10"
+
+dependencies = [
+  "pandas",
+  "numpy",
+  "matplotlib",
+  "pyyaml",
+  "python-dotenv",
+]
+
+[project.optional-dependencies]
+# Interactive shell niceties. On Linux/macOS the stdlib `readline` already
+# powers history + tab completion; Windows has no stdlib readline, so install
+# this extra (`pip install nami[shell]`) to get the same experience there.
+shell = [
+  "pyreadline3; sys_platform == 'win32'",
+]
+
+crawl = [
+  "hikerapi",
+  "certifi",
+  "tqdm"
+]
+
+vision = [
+  "torch",
+  "transformers",
+  "pillow",
+]
+
+vision-gemini = [
+  "google-genai",
+]
+
+vision-local = [
+  "transformers",
+  "accelerate",
+  "qwen-vl-utils",
+  "av",
+]
+
+network = [
+  "networkx",
+]
+
+math = [
+  "scipy",
+]
+
+# Acoustic / audio-visual sidecar (src/nami_av). Deliberately lightweight: no torch,
+# no ultralytics, no moviepy. ffmpeg is found on PATH or via imageio-ffmpeg.
+av = [
+  "librosa",
+  "soundfile",
+  "pyloudnorm",
+  "scenedetect[opencv]",
+  "scikit-learn",
+  "scipy",
+  "imageio-ffmpeg",
+]
+
+all = [
+  "nami[crawl,vision,vision-gemini,vision-local,network,math,av]",
+]
+
+[project.scripts]
+nami-av = "nami_av.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

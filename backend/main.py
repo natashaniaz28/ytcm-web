@@ -100,6 +100,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# NAMI (Instagram Reels analysis) routes — read-only dashboards over an uploaded corpus.db
+from nami_routes import router as nami_router
+app.include_router(nami_router)
+
 
 # ---------------------------------------------------------------------------
 # Pydantic models

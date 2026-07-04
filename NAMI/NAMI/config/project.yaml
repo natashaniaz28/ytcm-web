@@ -1,0 +1,16 @@
+version: "4.0"
+
+project:
+  id: city_pop_reels
+  name: Japanese City Pop on Instagram Reels
+  platform: instagram
+  media_type: reels
+
+paths:
+  database: data/corpus.db
+  songs: config/songs.yaml
+  schema: config/schema.yaml
+  domain: config/domain.yaml
+  report_output: outputs/report_out
+  reels: data/reels
+  thumbnails: data/thumbnails

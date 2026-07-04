@@ -1,0 +1,553 @@
+version: "4.0"
+shared_terms:
+  music_discourse:
+    description: Preliminary list of terms indicating that the caption or hashtags discuss music itself.
+    terms:
+    - citypop
+    - city pop
+    - anri
+    - mariya
+    - takeuchi
+    - miki matsubara
+    - meiko nakahara
+    - yasuha
+    - lyrics
+    - lyric
+    - cover
+    - vinyl
+    - record
+    - album
+    - playlist
+    - jpop
+    - j-pop
+    - 歌詞
+    - 杏里
+    - 竹内まりや
+    - 松原みき
+    - 中原めいこ
+    - 泰葉
+    - レコード
+    - アルバム
+    - プレイリスト
+    - 弾いてみた
+    - 歌ってみた
+    - シティポップ
+  visual_world:
+    description: Preliminary list of terms indicating that the music is used as a background or filter for a visual/social scene.
+    terms:
+    - japan
+    - tokyo
+    - kyoto
+    - osaka
+    - travel
+    - trip
+    - vlog
+    - cafe
+    - coffee
+    - food
+    - ramen
+    - sushi
+    - matcha
+    - street
+    - city
+    - urban
+    - outfit
+    - ootd
+    - fashion
+    - anime
+    - manga
+    - jdm
+    - car
+    - train
+    - nature
+    - beach
+    - 日本
+    - 東京
+    - 京都
+    - 大阪
+    - 旅行
+    - 旅
+    - 観光
+    - カフェ
+    - 喫茶店
+    - ラーメン
+    - 寿司
+    - 抹茶
+    - 街
+    - 服
+    - アニメ
+audio_filter:
+  music_discourse_terms_ref: shared_terms.music_discourse.terms
+  visual_world_terms_ref: shared_terms.visual_world.terms
+  output_columns:
+    music_hits: music_hits
+    visual_world_hits: visual_world_hits
+    music_discourse_score: music_discourse_score
+    visual_world_score: visual_world_score
+    has_music_discourse: has_music_discourse
+    has_visual_world: has_visual_world
+    audio_filter_use: audio_filter_use
+    audio_filter_index: audio_filter_index
+hashtag_semantics:
+  other_label: Other
+  priority_substring_rules:
+  - cluster_id: food_cafe
+    contains:
+    - food
+    - ramen
+    - sushi
+    - cafe
+    - matcha
+    - coffee
+  clusters:
+  - id: japan_travel
+    label: Japan / Travel
+    exact:
+    - japan
+    - japantravel
+    - japantrip
+    - japanese
+    - tokyo
+    - tokyotravel
+    - kyoto
+    - osaka
+    - shibuya
+    - shinjuku
+    - japanlife
+    - visitjapan
+    - traveljapan
+    - japanlover
+    - japanguide
+    - japanvlog
+    - japantips
+    - travel
+    - traveltips
+    - holiday
+    - holidays
+    - trip
+    - vacation
+    - 日本
+    - 東京
+    - 京都
+    - 大阪
+    - 旅行
+    contains:
+    - japan
+    - tokyo
+    - kyoto
+    - osaka
+    - travel
+    - trip
+  - id: food_cafe
+    label: Food / Cafe
+    exact:
+    - food
+    - foodie
+    - japanfood
+    - tokyofood
+    - osakafood
+    - ramen
+    - sushi
+    - cafe
+    - coffee
+    - matcha
+    - restaurant
+    - restaurants
+    - omakase
+    - izakaya
+    - dessert
+    - kawaii
+    - japanesefood
+    contains:
+    - food
+    - ramen
+    - sushi
+    - cafe
+    - matcha
+  - id: music_citypop_anri
+    label: Music / City Pop / Anri
+    exact:
+    - citypop
+    - citypopmusic
+    - jpop
+    - japanese80s
+    - 80smusic
+    - 80s
+    - anri
+    - mariyatakeuchi
+    - mariya
+    - takeuchi
+    - staywithme
+    - plasticlove
+    - lyrics
+    - vinyl
+    - song
+    - playlist
+    - cover
+    - 杏里
+    - 竹内まりや
+    - 歌詞
+    - シティポップ
+    contains:
+    - citypop
+    - anri
+    - jpop
+    - mariya
+    - lyrics
+    - vinyl
+  - id: anime_game_fanart
+    label: Anime / Game / Fan Art
+    exact:
+    - anime
+    - manga
+    - otaku
+    - fanart
+    - art
+    - digitalart
+    - drawing
+    - illustration
+    - game
+    - gaming
+    - gamer
+    - hollowknight
+    - silksong
+    - zelda
+    - genshin
+    - valorant
+    - cosplay
+    contains:
+    - anime
+    - manga
+    - game
+    - fanart
+    - hollowknight
+    - silksong
+  - id: jdm_car_transport
+    label: JDM / Car / Transport
+    exact:
+    - jdm
+    - car
+    - cars
+    - nissan
+    - honda
+    - toyota
+    - mazda
+    - supra
+    - skyline
+    - ae86
+    - train
+    - trains
+    - shinkansen
+    - metro
+    - subway
+    - railway
+    - station
+    - bus
+    contains:
+    - jdm
+    - car
+    - train
+    - nissan
+    - honda
+    - toyota
+  - id: fashion_lifestyle
+    label: Fashion / Lifestyle
+    exact:
+    - fashion
+    - ootd
+    - outfit
+    - style
+    - beauty
+    - makeup
+    - skincare
+    - lifestyle
+    - vlog
+    - dailyvlog
+    - streetstyle
+    - streetwear
+    - summer
+    - beach
+    - interior
+    - design
+    contains:
+    - fashion
+    - outfit
+    - ootd
+    - beauty
+    - style
+  - id: generic_fyp_meme
+    label: Generic / FYP / Meme
+    exact:
+    - meme
+    - memes
+    - funny
+    - relatable
+    - pov
+    - wallpaper
+    - wallpaperengine
+    - capcut
+    - template
+    - edit
+    - edits
+    - fyp
+    - viral
+    - trending
+    - trend
+    - explore
+    - reels
+hashtag_stoplist:
+  default:
+  - fyp
+  - foryou
+  - foryoupage
+  - viral
+  - reels
+  - reel
+  - instagram
+  - instagood
+  - explore
+  - explorepage
+  - trend
+  - trending
+  - love
+  - like
+  - follow
+  - followme
+  - music
+  - video
+  - edit
+  - aesthetic
+  - fypシ
+  - viralreels
+  - instareels
+  - reelitfeelit
+  distinctive:
+  - fyp
+  - fy
+  - foryou
+  - foryoupage
+  - viral
+  - reels
+  - reel
+  - instagram
+  - instagood
+  - explore
+  - explorepage
+  - trending
+  - trend
+  - おすすめ
+  - バズれ
+  - aesthetic
+  - love
+  - music
+  - song
+  - songs
+  - video
+  - edit
+  - edits
+  - capcut
+  - tiktok
+  - shorts
+  - like
+  - follow
+  - followme
+  - cute
+  - beautiful
+sampling:
+  random_state: 42
+  default_contexts:
+  - japan_travel
+  - food_cafe
+  - cityscape_street
+  - anime_manga
+  - transport_train_car
+  - fashion_beauty
+  - nature_scenery
+  - dance_performance
+  music_discourse_terms_ref: shared_terms.music_discourse.terms
+  visual_contexts:
+  - japan_travel
+  - food_cafe
+  - cityscape_street
+  - anime_manga
+  - transport_train_car
+  - fashion_beauty
+  - nature_scenery
+  curated_slots:
+  - slot: fantasy__japan_food_top
+    song: fantasy
+    contexts:
+    - japan_travel
+    - food_cafe
+    keywords:
+    - japan
+    - tokyo
+    - osaka
+    - food
+    - ramen
+    - sushi
+    - cafe
+    - matcha
+    mode: top
+    n: 3
+  - slot: stay_with_me__japan_travel_top
+    song: stay_with_me
+    contexts:
+    - japan_travel
+    keywords:
+    - japan
+    - tokyo
+    - kyoto
+    - osaka
+    - travel
+    - trip
+    mode: top
+    n: 3
+  - slot: flyday_chinatown__diffuse_high_impact
+    song: flyday_chinatown
+    contexts: []
+    keywords: []
+    mode: top
+    n: 4
+  - slot: i_cant_stop__game_jdm_subculture
+    song: i_cant_stop_the_loneliness
+    contexts:
+    - anime_manga
+    - transport_train_car
+    keywords:
+    - hollowknight
+    - silksong
+    - jdm
+    - nissan
+    - honda
+    - anime
+    - game
+    - fanart
+    mode: top
+    n: 4
+  - slot: stay_by_me__music_anri
+    song: stay_by_me
+    contexts: []
+    keywords:
+    - anri
+    - citypop
+    - jpop
+    - lyrics
+    - song
+    - 杏里
+    - シティポップ
+    mode: top
+    n: 4
+  - slot: last_summer_whisper__food_urban_music
+    song: last_summer_whisper
+    contexts:
+    - food_cafe
+    - cityscape_street
+    keywords:
+    - citypop
+    - cafe
+    - food
+    - tokyo
+    - night
+    - urban
+    mode: top
+    n: 4
+  - slot: remember_summer_days__fashion_anime_travel
+    song: remember_summer_days
+    contexts:
+    - fashion_beauty
+    - anime_manga
+    - japan_travel
+    keywords:
+    - fashion
+    - ootd
+    - anime
+    - japan
+    - travel
+    - summer
+    mode: top
+    n: 4
+  - slot: counterexamples__music_as_background
+    song: null
+    contexts: []
+    keywords: []
+    mode: random_visual_no_music
+    n: 8
+robustness:
+  broad_keyword_max_length: 3
+  broad_keywords:
+  - ai
+  - jp
+  - japan
+  - tokyo
+  - trip
+  - food
+  - car
+  - cat
+  - dog
+moderation:
+  spam_terms:
+  - crypto
+  - binance
+  - buterin
+  - bitcoin
+  - ethereum
+  - nft
+  - forex
+  - trading
+  - investment
+  - betting
+  - casino
+  - 1xbet
+report:
+  title: Japanese City Pop on Instagram Reels
+  html_title: City Pop Reels — Analysis
+  subtitle: Songs, assets, hashtags, contexts, and creator structures
+  primary_dimension: context
+  secondary_dimension: format
+  enabled_sections:
+  - scope
+  - classifiability
+  - audio_filter
+  - category_distribution
+  - category_share_by_song
+  - dimension_combinations
+  - song_distinctiveness
+  - distinctive_hashtags
+  - asset_profiles
+  - impact_by_theme
+  - creator_structure
+  - caption_style
+  - hashtag_network
+  - close_reading
+  - robustness
+  - snapshots
+  sections:
+    scope: Scope
+    classifiability: How much is classifiable
+    audio_filter: Music discourse vs. visual framing
+    category_distribution: Category distribution per dimension
+    category_share_by_song: Category share by song
+    dimension_combinations: Context × format combinations
+    song_distinctiveness: Range across songs
+    distinctive_hashtags: Distinctive hashtags
+    asset_profiles: Audio assets vs. song
+    impact_by_theme: Category share in the top-impact segment
+    creator_structure: Creator structure
+    caption_style: Caption style and classifiability
+    hashtag_network: Hashtag network
+    close_reading: Close-reading sample
+    robustness: Robustness checks
+    snapshots: Snapshot / churn status
+  labels:
+    context: Context
+    format: Format
+    unknown: Unknown
+    source_keyword: Keyword
+    source_vision: Vision
+    source_manual: Manual
+    source_v2_manual: Manual v2
+    audio_filter_section: Music discourse vs. visual framing
+    music_discourse: Music discourse terms
+    visual_world: Visual-world terms
+    audio_filter_share: Visual framing without music terms

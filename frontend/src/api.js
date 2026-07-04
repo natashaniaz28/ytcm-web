@@ -90,11 +90,48 @@ export const api = {
   // Quick Report
   quickReport:            (config)   => req('POST', '/quickreport', config),
   quickReportDownloadUrl: (filename) => `${BASE}/quickreport/download/${encodeURIComponent(filename)}`,
+
+  // NAMI (Instagram Reels analysis) — read-only dashboards over an uploaded corpus.db
+  namiUpload: (file) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return fetch(BASE + '/nami/upload', { method: 'POST', body: fd }).then(r => {
+      if (!r.ok) return r.json().then(e => { throw new Error(e.detail) })
+      return r.json()
+    })
+  },
+  namiStatus:  (sid) => req('GET', `/nami/status?session_id=${encodeURIComponent(sid)}`),
+  namiAnalyse: (sid) => req('GET', `/nami/analyse?session_id=${encodeURIComponent(sid)}`),
+
+  namiScopeTimeline: (sid, entity = 'songs', freq = 'M') =>
+    req('GET', `/nami/scope/timeline?session_id=${encodeURIComponent(sid)}&entity=${entity}&freq=${freq}`),
+  namiScopeDist: (sid, field = 'plays') =>
+    req('GET', `/nami/scope/dist?session_id=${encodeURIComponent(sid)}&field=${field}`),
+  namiScopeTopreels: (sid, field = 'plays', n = 20) =>
+    req('GET', `/nami/scope/topreels?session_id=${encodeURIComponent(sid)}&field=${field}&n=${n}`),
+  namiScopeImpact: (sid, by = 'song') =>
+    req('GET', `/nami/scope/impact?session_id=${encodeURIComponent(sid)}&by=${by}`),
+
+  namiTalkCaptionterms: (sid, top = 50) =>
+    req('GET', `/nami/talk/captionterms?session_id=${encodeURIComponent(sid)}&top=${top}`),
+  namiTalkHashtagterms: (sid, top = 50) =>
+    req('GET', `/nami/talk/hashtagterms?session_id=${encodeURIComponent(sid)}&top=${top}`),
+  namiTalkDistinctiveterms: (sid, by = 'song', source = 'hashtags', top = 30) =>
+    req('GET', `/nami/talk/distinctiveterms?session_id=${encodeURIComponent(sid)}&by=${by}&source=${source}&top=${top}`),
+
+  namiGraph: (sid, type, minWeight = 1, top = 40) =>
+    req('GET', `/nami/graphs/${type}?session_id=${encodeURIComponent(sid)}&min_weight=${minWeight}&top=${top}`),
+  namiGraphDownloadUrl: (sid, type, fmt) =>
+    `${BASE}/nami/graphs/${type}/download/${fmt}?session_id=${encodeURIComponent(sid)}`,
+
+  namiBuildReport: (sid) => req('POST', `/nami/report?session_id=${encodeURIComponent(sid)}`),
+  namiReportFileUrl: (sid) => `${BASE}/nami/report/file?session_id=${encodeURIComponent(sid)}`,
 }
 
-// WebSocket helper — works for both local and cloud
-export function watchJob(jobId, onMessage) {
-  const ws = new WebSocket(`${WS_BASE}/ws/jobs/${jobId}`)
+// WebSocket helper — works for both local and cloud.
+// `base` lets callers point at a different job namespace (e.g. NAMI's report jobs).
+export function watchJob(jobId, onMessage, base = '/ws/jobs') {
+  const ws = new WebSocket(`${WS_BASE}${base}/${jobId}`)
   ws.onmessage = (e) => onMessage(JSON.parse(e.data))
   ws.onerror   = ()  => onMessage({ status: 'error', error: 'WebSocket connection failed' })
   return () => ws.close()

@@ -21,3 +21,6 @@ scipy==1.14.1
 tqdm==4.66.5
 python-dateutil==2.9.0.post0
 reportlab==4.2.5
+
+# NAMI (Instagram Reels analysis) core dependency
+pyyaml==6.0.2

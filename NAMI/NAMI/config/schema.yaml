@@ -1,0 +1,165 @@
+version: "4.0"
+
+infer_aesthetics: false
+
+# Optional configuration for Gemini vision tagX
+# Every field here is optional. Missing blocks are fine.
+vision:
+  model: "gemini-2.5-flash"        # backend id; "gemini*" -> Gemini, "qwen/omni" -> local VLM, "stub" -> StubModel
+  media_resolution: default        # default | low  (default keeps Japanese OCR legible)
+  fps: 1                           # frames/sec sampled by the backend
+  max_categories_per_dim: 2        # cap multi-label selection per dimension
+  instruction_template: |
+    You are classifying a short Instagram Reel (a video with audio) for a research
+    corpus about how a song is used across reels. Use the video frames, any on-screen
+    text (including Japanese), and the audio track.
+
+    For each dimension below, pick the categories whose DESCRIPTION best matches the
+    reel's actual content. A reel may match several categories in a dimension, exactly
+    one, or none. Distinguish topic (what is shown, the "context" dimension) from
+    intent/structure (how it is presented, the "format" dimension).
+
+    Return STRICT JSON only, no prose:
+      {"<dimension_id>": [{"category": "<category_id>", "confidence": <float 0..1>}]}
+    Use only the exact category ids listed. Choose at most {max_categories_per_dim}
+    categories per dimension, and return an empty array for a dimension when nothing fits.
+
+dimensions:
+
+  context:
+    unknown_id: unclear
+    unknown_label: "Unclear context"
+    categories:
+      japan_travel:
+        label: "Japan travel, tourism"
+        keywords: [japan, tokyo, kyoto, osaka, nara, sapporo, fukuoka, shibuya,
+          shinjuku, harajuku, ginza, akihabara, asakusa, visitjapan, japantravel,
+          japantrip, traveljapan, tokyotravel, discoverjapan, japangram,
+          日本, 東京, 京都, 大阪, 奈良, 札幌, 福岡, 渋谷, 新宿, 原宿, 銀座,
+          秋葉原, 浅草, 旅行, 旅, 観光, 日本旅行, 東京旅行]
+        vision_prompt: "a travel photo in Japan, Japanese streets, temples or landmarks"
+        vision_description: >-
+          The setting is recognizably Japan -- Japanese signage, temples, shrines,
+          torii gates, or well-known landmarks -- and it is framed as travel or
+          sightseeing rather than ordinary everyday local life.
+      cityscape_street:
+        label: "City, street, urbanity"
+        keywords: [city, street, streets, urban, downtown, crossing, walk, walking,
+          alley, neighborhood, 街, 街角, 都会, 散歩, 路地, 交差点, 町, まち]
+        vision_prompt: "an urban street scene, city buildings, pedestrians"
+        vision_description: >-
+          An urban environment is the subject: city buildings, busy streets,
+          crossings, alleys or pedestrians, anywhere in the world, with no specific
+          Japan-travel framing required.
+      food_cafe:
+        label: "Food, cafe, restaurant"
+        keywords: [food, ramen, sushi, matcha, cafe, coffee, restaurant, izakaya,
+          lunch, dinner, streetfood, japanesefood, foodie, ラーメン, 寿司, すし,
+          抹茶, 居酒屋, カフェ, 喫茶店, ご飯, グルメ, 料理, 食べ物, ランチ, ディナー]
+        vision_prompt: "a close-up of food or drinks on a table, a cafe or restaurant interior"
+        vision_description: >-
+          Food or drinks are the main subject -- a dish on a plate, a cafe or restaurant
+          interior, cooking or serving -- regardless of whether anyone reviews or rates
+          it (that evaluating intent is the food_review format, a separate dimension).
+      transport_train_car:
+        label: "Mobility, train, car"
+        keywords: [train, subway, metro, station, car, cars, drive, driving, road,
+          highway, cruise, jdm, roadtrip, mobility, 電車, 駅, 地下鉄, 車, ドライブ, 道路,
+          高速, 首都高, 新幹線]
+        vision_prompt: "a train, subway, car interior or road"
+        vision_description: >-
+          Trains, subways, stations, cars, car interiors or roads are central to the
+          clip, such as a commute, a drive, or a vehicle showcase.
+      fashion_beauty:
+        label: "Fashion, beauty, outfit"
+        keywords: [fashion, outfit, ootd, style, makeup, hair, beauty, look,
+          fitcheck, streetwear, コーデ, 服, ファッション, メイク, 美容, ヘア]
+        vision_prompt: "a person posing to show their outfit, clothing or makeup look"
+        vision_description: >-
+          A person presents clothing, an outfit, styling, hair or makeup as the focus,
+          for example an outfit-of-the-day, a fit check, or a beauty look.
+      dance_performance:
+        label: "Dance, performance"
+        keywords: [dance, dancing, choreo, choreography, coverdance, performance,
+          踊ってみた, ダンス, 振付, 踊り]
+        vision_prompt: "people dancing together, a stage performance or dance group"
+        vision_description: >-
+          People dance or perform on screen -- a group routine, a stage show or a
+          performance -- where dance is the actual content shown. The repeatable
+          to-camera dance-challenge is captured separately on the format dimension.
+      anime_manga:
+        label: "Anime, manga, otaku"
+        keywords: [anime, manga, otaku, cosplay, ghibli, onepiece, naruto, amv,
+          アニメ, 漫画, マンガ, オタク, コスプレ, ジブリ]
+        vision_prompt: "anime, manga or cartoon style illustration"
+        vision_description: >-
+          Anime, manga, cartoon-style illustration, cosplay or otaku culture appears
+          as drawn or animated artwork or fan content, rather than live-action reality.
+      pets_animals:
+        label: "Pets, animals"
+        keywords: [cat, dog, pet, cats, dogs, animal, 猫, 犬, ペット, 動物, ねこ, いぬ]
+        vision_prompt: "a close-up of a pet cat, dog or small animal as the main subject"
+        vision_description: >-
+          A pet or animal -- typically a cat, dog or small companion animal -- is the
+          main subject for most of the clip.
+      nature_scenery:
+        label: "Nature, landscape, scenery"
+        keywords: [nature, mountain, ocean, sea, beach, sky, landscape, scenery,
+          cherryblossom, sakura, 海, 山, 桜, 自然, 風景]
+        vision_prompt: "nature, mountains, ocean, sky or landscape"
+        vision_description: >-
+          A natural landscape dominates the frame: mountains, ocean, beach, sky,
+          forest or seasonal scenery such as cherry blossoms, with little or no urban
+          built environment.
+
+  format:
+    unknown_id: unknown_format
+    unknown_label: "Unclear format"
+    categories:
+      travel_pov:
+        label: "Travel POV"
+        keywords: [pov, trip, travel, "day in japan", "japan vlog", traveltok,
+          旅行, 旅, 日本旅行]
+        vision_prompt: "a scenic travel video walking through streets or landmarks"
+        vision_description: >-
+          A first-person travel video that moves through a place -- walking through
+          streets, landmarks or a trip --, emphasising the journey or POV experience
+          rather than a single static subject.
+      dance_challenge:
+        label: "Dance challenge"
+        keywords: [dancechallenge, challenge, 踊ってみた, ダンスチャレンジ]
+        vision_prompt: "a person dancing a choreography facing the camera"
+        vision_description: >-
+          One or more people perform a short, repeatable choreography facing the
+          camera in the recognisable dance-challenge format meant to be copied;
+          distinct from incidental dancing or a staged dance_performance.
+      food_review:
+        label: "Food review, recommendation"
+        keywords: [review, recommendation, "best ramen", "must try", おすすめ,
+          レビュー, 食べ歩き]
+        vision_prompt: "a close-up of a plated dish or food being eaten"
+        vision_description: >-
+          The clip is built around evaluating food -- tasting, rating, recommending or
+          giving a verdict on a dish or place -- often with spoken or on-screen
+          commentary, not merely showing food.
+      tutorial_recommendation:
+        label: "Tour guide"
+        keywords: [tips, guide, "how to", "things to do", "places to visit",
+          おすすめ, 行くべき, 紹介, ガイド]
+        vision_prompt: "a guide or recommendation with on-screen text and tips"
+        vision_description: >-
+          A guide, how-to or recommendation format -- tips, lists of places, or
+          step-by-step instructions -- usually carried by on-screen text overlays in a
+          structured "tour guide" presentation.
+      lyrics_music_post:
+        label: "Music, lyrics"
+        keywords: [lyrics, lyric, cover, 歌詞, 弾いてみた, 歌ってみた,
+          spotify, applemusic, youtubemusic, soundcloud, amazonmusic, nowplaying]
+        vision_prompt: "a Spotify, Apple Music, YouTube Music, SoundCloud or Amazon Music app screen, or text-only lyrics on a plain background"
+        vision_description: >-
+          A music-centric post foregrounding the song itself: on-screen lyrics, a
+          cover performance, or text on a plain background, OR a visible
+          music-streaming app interface -- a Spotify, Apple Music, YouTube Music,
+          SoundCloud or Amazon Music "now playing" screen, share card, play button or
+          recognizable streaming-app logo -- rather than a real-world scene. The
+          streaming-app UI counts even when it merely overlays another scene.

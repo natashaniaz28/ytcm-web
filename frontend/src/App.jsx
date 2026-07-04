@@ -11,6 +11,7 @@ import TubeGraphPage from './pages/TubeGraph'
 import ExportPage  from './pages/Export'
 import SettingsPage from './pages/Settings'
 import QuickReportPage from './pages/QuickReport'
+import NamiPage from './pages/Nami'
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
               <Route path="/export"     element={<ExportPage />} />
               <Route path="/settings"      element={<SettingsPage />} />
               <Route path="/quickreport"  element={<QuickReportPage />} />
+              <Route path="/nami"         element={<NamiPage />} />
             </Routes>
           </div>
         </main>

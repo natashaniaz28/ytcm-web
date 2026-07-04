@@ -1,0 +1,30 @@
+# NAMI reference copy — zip cruft, secrets, and large/regenerable data.
+# Source (src/, config/, scripts/, docs) stays tracked as reference material.
+NAMI/__MACOSX/
+NAMI/**/.env
+NAMI/**/data/*.db
+NAMI/**/data/reels/
+NAMI/**/data/thumbnails/
+NAMI/**/data/asset_audio/
+NAMI/**/logs/
+NAMI/**/outputs/
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Local secrets / env
+.env
+backend/YOUTUBE.API
+
+# NAMI runtime session artifacts (uploaded corpora, generated reports/graphs)
+# WORK_DIR falls back to backend/ when running locally (not on Render)
+backend/nami_*.db
+backend/nami_report_*/
+backend/nami_graphs_*/
+
+# Build output
+frontend/dist/
