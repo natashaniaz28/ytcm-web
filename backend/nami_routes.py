@@ -32,6 +32,7 @@ if str(BACKEND_DIR) not in sys.path:
 from nami_code.analysis import analyse as A
 from nami_code.analysis import namiscope, namitalk, namigraph, namiviz
 from nami_code.reports import report as nami_report
+from YTCM_data_enrichment_utils import detect_language
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/nami", tags=["nami"])
@@ -48,8 +49,10 @@ PROJECT_PATH = str(NAMI_CONFIG_DIR / "project.yaml")
 
 # session_id -> uploaded corpus.db path
 nami_sessions: Dict[str, Path] = {}
-# job_id -> job state, for the (slow) full-report build
+# job_id -> job state, for slow background jobs (report build, language detection)
 nami_jobs: Dict[str, Dict[str, Any]] = {}
+# session_id -> {reel_pk: language}, cached once /language has run for that session
+nami_language_cache: Dict[str, Dict[str, str]] = {}
 
 
 class _NamiConnectionManager:
@@ -403,15 +406,16 @@ async def build_report(session_id: str, background_tasks: BackgroundTasks):
     return {"job_id": job_id}
 
 
-@router.get("/report/jobs/{job_id}")
-def report_job_status(job_id: str):
+@router.get("/jobs/{job_id}")
+def job_status(job_id: str):
+    """Generic status lookup, shared by the report build and language-detection jobs."""
     if job_id not in nami_jobs:
         raise HTTPException(status_code=404, detail="Job not found")
     return nami_jobs[job_id]
 
 
-@router.websocket("/ws/report/{job_id}")
-async def report_job_websocket(websocket: WebSocket, job_id: str):
+@router.websocket("/ws/jobs/{job_id}")
+async def job_websocket(websocket: WebSocket, job_id: str):
     await manager.connect(job_id, websocket)
     TERMINAL = {"done", "error"}
     try:
@@ -446,3 +450,110 @@ def report_file(session_id: str):
     if not path.exists():
         raise HTTPException(status_code=404, detail="Report not built yet.")
     return FileResponse(path=str(path), filename="nami_report.html", media_type="text/html")
+
+
+# ---------------------------------------------------------------------------
+# Language mix — which language communities engage with a song's reels.
+# Reuses YTCM's own detect_language() (langdetect), same technique already
+# used for YouTube comments. Result is cached in memory per session (not
+# written back to the uploaded corpus.db) — same ephemeral lifetime as
+# everything else in WORK_DIR.
+# ---------------------------------------------------------------------------
+@router.post("/language")
+async def build_language(session_id: str, background_tasks: BackgroundTasks):
+    db_path = _get_db_path(session_id)
+    job_id = str(uuid.uuid4())
+    nami_jobs[job_id] = {"status": "pending", "progress": 0, "total": 0, "result": None, "error": None}
+
+    async def run():
+        try:
+            nami_jobs[job_id]["status"] = "running"
+            await manager.send(job_id, {"status": "running", "message": "Loading captions…"})
+
+            df = await asyncio.to_thread(namitalk.load_caption_dataframe, db_path)
+            total = len(df)
+            nami_jobs[job_id]["total"] = total
+            langs: Dict[str, str] = {}
+
+            def _detect_all():
+                for i, row in enumerate(df.itertuples(index=False), start=1):
+                    text = row.caption_text or ""
+                    langs[row.reel_pk] = detect_language(text) if text.strip() else "unknown"
+                    if i % 200 == 0 or i == total:
+                        nami_jobs[job_id]["progress"] = i
+                return langs
+
+            async def _watch():
+                last = -1
+                while True:
+                    await asyncio.sleep(1.0)
+                    cur = nami_jobs[job_id].get("progress", 0)
+                    if cur != last:
+                        last = cur
+                        await manager.send(job_id, {
+                            "status": "running", "progress": cur, "total": total,
+                            "message": f"Detecting language… {cur}/{total}",
+                        })
+                    if cur >= total:
+                        break
+
+            # Detection is CPU-bound (langdetect, pure Python) and can take a couple of
+            # minutes on a full corpus — run it in a thread so it doesn't block the event
+            # loop (and everyone else's requests) for that whole time. The watcher polls
+            # the shared progress counter and forwards it over the job's WebSocket.
+            watch_task = asyncio.create_task(_watch())
+            await asyncio.to_thread(_detect_all)
+            watch_task.cancel()
+
+            nami_language_cache[session_id] = langs
+            nami_jobs[job_id].update({
+                "status": "done",
+                "result": {"session_id": session_id, "n_reels": total},
+            })
+            await manager.send(job_id, {
+                "status": "done", "session_id": session_id, "n_reels": total,
+                "message": "Language detection complete.",
+            })
+        except Exception as e:
+            logger.error(f"nami language job {job_id} failed: {e}")
+            nami_jobs[job_id].update({"status": "error", "error": str(e)})
+            await manager.send(job_id, {"status": "error", "error": str(e)})
+
+    background_tasks.add_task(run)
+    return {"job_id": job_id}
+
+
+@router.get("/language/summary")
+def language_summary(session_id: str):
+    langs = nami_language_cache.get(session_id)
+    if langs is None:
+        return {"ready": False}
+
+    db_path = _get_db_path(session_id)
+    try:
+        df = namitalk.load_caption_dataframe(db_path)
+        df["language"] = df["reel_pk"].map(langs).fillna("unknown")
+        total = len(df)
+
+        overall = [
+            {"language": lang, "count": int(cnt), "share": round(cnt / total, 4) if total else 0.0}
+            for lang, cnt in df["language"].value_counts().items()
+        ]
+
+        by_song = []
+        for (song_id, song_title), sub in df.groupby(["song_id", "song_title"], dropna=False):
+            n = len(sub)
+            for lang, cnt in sub["language"].value_counts().items():
+                by_song.append({
+                    "song_id": song_id,
+                    "song_title": song_title,
+                    "language": lang,
+                    "count": int(cnt),
+                    "share_within_song": round(cnt / n, 4) if n else 0.0,
+                })
+        by_song.sort(key=lambda r: (r["song_id"] or "", -r["count"]))
+
+        return {"ready": True, "n_reels": total, "overall": overall, "by_song": by_song}
+    except Exception as e:
+        logger.error(f"nami language summary failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

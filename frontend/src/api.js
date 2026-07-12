@@ -126,6 +126,9 @@ export const api = {
 
   namiBuildReport: (sid) => req('POST', `/nami/report?session_id=${encodeURIComponent(sid)}`),
   namiReportFileUrl: (sid) => `${BASE}/nami/report/file?session_id=${encodeURIComponent(sid)}`,
+
+  namiBuildLanguage:   (sid) => req('POST', `/nami/language?session_id=${encodeURIComponent(sid)}`),
+  namiLanguageSummary: (sid) => req('GET',  `/nami/language/summary?session_id=${encodeURIComponent(sid)}`),
 }
 
 // WebSocket helper — works for both local and cloud.

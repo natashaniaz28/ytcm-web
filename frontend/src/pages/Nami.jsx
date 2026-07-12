@@ -3,7 +3,7 @@ import { api, watchJob } from '../api'
 import { Card, SectionTitle, Btn, Select, StatTile, PlotGallery, Empty, Tag } from '../components/ui'
 import {
   Upload, Loader2, CheckCircle2, AlertTriangle,
-  BarChart3, Network, FileText, Download,
+  BarChart3, Network, FileText, Download, Globe2,
 } from 'lucide-react'
 
 // Small table renderer for the JSON row-sets the NAMI endpoints return —
@@ -80,6 +80,11 @@ export default function NamiPage() {
   const [reportJob, setReportJob] = useState(null)
   const [reportRunning, setReportRunning] = useState(false)
 
+  const [language, setLanguage] = useState(null)       // { ready, n_reels, overall, by_song }
+  const [languageJob, setLanguageJob] = useState(null)
+  const [languageRunning, setLanguageRunning] = useState(false)
+  const [languageSongFilter, setLanguageSongFilter] = useState('')
+
   async function handleUpload(e) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -90,10 +95,43 @@ export default function NamiPage() {
       setSession(r)
       setUploadMsg({ ok: true, text: r.message })
       loadAnalyse(r.session_id)
+      loadLanguageSummary(r.session_id)
     } catch (err) {
       setUploadMsg({ ok: false, text: err.message })
     } finally {
       setUploading(false)
+    }
+  }
+
+  async function loadLanguageSummary(sessionId) {
+    try {
+      const r = await api.namiLanguageSummary(sessionId)
+      setLanguage(r)
+    } catch (e) {
+      setLanguage({ ready: false })
+    }
+  }
+
+  async function buildLanguage() {
+    if (!session || languageRunning) return
+    setLanguageRunning(true)
+    setLanguageJob(null)
+    try {
+      const { job_id } = await api.namiBuildLanguage(session.session_id)
+      const stop = watchJob(job_id, (msg) => {
+        setLanguageJob(msg)
+        if (msg.status === 'done') {
+          setLanguageRunning(false)
+          stop()
+          loadLanguageSummary(session.session_id)
+        } else if (msg.status === 'error') {
+          setLanguageRunning(false)
+          stop()
+        }
+      }, '/api/nami/ws/jobs')
+    } catch (e) {
+      setLanguageJob({ status: 'error', error: e.message })
+      setLanguageRunning(false)
     }
   }
 
@@ -150,7 +188,7 @@ export default function NamiPage() {
           setReportRunning(false)
           stop()
         }
-      }, '/api/nami/ws/report')
+      }, '/api/nami/ws/jobs')
     } catch (e) {
       setReportJob({ status: 'error', error: e.message })
       setReportRunning(false)
@@ -244,6 +282,90 @@ export default function NamiPage() {
                 </div>
 
                 {analyseDim && <DataTable rows={analyse.distributions[analyseDim]} />}
+              </div>
+            )}
+          </Card>
+
+          {/* Global language mix */}
+          <Card>
+            <p className="text-xs uppercase tracking-widest text-ink-500 font-body mb-2">Global language mix</p>
+            <p className="text-xs text-ink-500 font-mono mb-4 leading-relaxed">
+              Which language communities are actually posting about each song — the closest signal here to "where in the world is this trending."
+            </p>
+
+            {!language && (
+              <div className="flex items-center justify-center h-24 border border-ink-700 rounded-2xl">
+                <Loader2 size={18} className="animate-spin text-acid-500" />
+              </div>
+            )}
+
+            {language && !language.ready && !languageRunning && (
+              <div className="flex items-start gap-3">
+                <Btn onClick={buildLanguage}>
+                  <Globe2 size={16} />Detect languages
+                </Btn>
+                <p className="text-xs font-mono text-ink-500 mt-3 leading-relaxed">
+                  Runs language detection over every caption.<br />
+                  Can take 1–3 minutes for a full corpus.
+                </p>
+              </div>
+            )}
+
+            {languageRunning && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Loader2 size={14} className="animate-spin text-acid-500" />
+                  <span className="font-mono text-xs text-ink-300">
+                    {languageJob?.message || 'Detecting…'}
+                  </span>
+                </div>
+                {languageJob?.total > 0 && (
+                  <div className="h-1.5 bg-ink-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-acid-500 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.round((languageJob.progress / languageJob.total) * 100)}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {languageJob?.status === 'error' && (
+              <div className="flex items-center gap-2 p-3 bg-coral-500/10 border border-coral-500/20 rounded-xl text-coral-400 text-sm font-mono">
+                <AlertTriangle size={14} />{languageJob.error}
+              </div>
+            )}
+
+            {language?.ready && (
+              <div className="space-y-4">
+                <div className="flex gap-3">
+                  <StatTile label="Reels analyzed" value={language.n_reels?.toLocaleString()} />
+                  <StatTile label="Languages detected" value={language.overall?.length} accent="text-acid-400" />
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-ink-500 font-body mb-2">Overall</p>
+                  <DataTable rows={language.overall} />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2 gap-4">
+                    <p className="text-xs uppercase tracking-widest text-ink-500 font-body">By song</p>
+                    <div className="w-64">
+                      <Select value={languageSongFilter} onChange={e => setLanguageSongFilter(e.target.value)}>
+                        <option value="">All songs</option>
+                        {[...new Map(language.by_song.map(r => [r.song_id, r.song_title])).entries()].map(([id, title]) => (
+                          <option key={id} value={id}>{title || id}</option>
+                        ))}
+                      </Select>
+                    </div>
+                  </div>
+                  <DataTable
+                    rows={languageSongFilter
+                      ? language.by_song.filter(r => r.song_id === languageSongFilter)
+                      : language.by_song}
+                  />
+                </div>
               </div>
             )}
           </Card>
